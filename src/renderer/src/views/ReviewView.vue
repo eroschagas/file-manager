@@ -23,7 +23,12 @@
         :selected-ids="review.state.selectedIds"
         :highest-resolution-id="review.highestResolutionId"
         :deleting="deleting"
+        :group-index="review.activeGroupIndex"
+        :group-count="review.filteredGroups.length"
         @toggle="emit('toggle', $event)"
+        @prev="!deleting && review.navigateGroup(-1)"
+        @next="!deleting && review.navigateGroup(1)"
+        @toggle-group="!deleting && review.toggleGroupSelection()"
         @reveal="emit('reveal', $event)"
         @preview="emit('preview', $event)"
       />

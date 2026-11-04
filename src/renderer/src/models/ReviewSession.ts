@@ -20,6 +20,16 @@ export class ReviewSession {
 
   constructor(private readonly scan: ScanSession) {}
 
+  private bestFile = (group: SimilarGroup): MediaFile | undefined =>
+    group.files.reduce<MediaFile | undefined>((best, file) => {
+      if (!best) return file
+      const resolution = file.width * file.height
+      const bestResolution = best.width * best.height
+      return resolution > bestResolution || (resolution === bestResolution && file.size > best.size)
+        ? file
+        : best
+    }, undefined)
+
   get groups(): SimilarGroup[] {
     return this.scan.state.result?.groups ?? []
   }
@@ -38,9 +48,19 @@ export class ReviewSession {
   }
 
   get highestResolutionId(): string | undefined {
-    return this.activeGroup?.files.reduce((best, file) =>
-      file.width * file.height > best.width * best.height ? file : best,
-    ).id
+    return this.activeGroup ? this.bestFile(this.activeGroup)?.id : undefined
+  }
+
+  get activeGroupIndex(): number {
+    const id = this.activeGroup?.id
+    return this.filteredGroups.findIndex((group) => group.id === id)
+  }
+
+  navigateGroup = (direction: -1 | 1): void => {
+    const index = this.activeGroupIndex
+    if (index < 0) return
+    const group = this.filteredGroups[index + direction]
+    if (group) this.selectGroup(group.id)
   }
 
   get selectedCounts(): Record<string, number> {
@@ -57,10 +77,15 @@ export class ReviewSession {
   }
 
   get potentialSpace(): number {
-    return this.groups.reduce(
-      (sum, group) => sum + group.files.slice(1).reduce((total, file) => total + file.size, 0),
-      0,
-    )
+    return this.groups.reduce((sum, group) => {
+      const bestId = this.bestFile(group)?.id
+      return (
+        sum +
+        group.files
+          .filter((file) => file.id !== bestId)
+          .reduce((total, file) => total + file.size, 0)
+      )
+    }, 0)
   }
 
   get selectedFiles(): MediaFile[] {
@@ -81,7 +106,10 @@ export class ReviewSession {
 
   begin = (result: ScanResult): void => {
     this.state.selectedIds = new Set(
-      result.groups.map((group) => group.files[group.files.length - 1].id),
+      result.groups.flatMap((group) => {
+        const bestId = this.bestFile(group)?.id
+        return group.files.filter((file) => file.id !== bestId).map((file) => file.id)
+      }),
     )
     this.state.activeId = result.groups[0]?.id ?? ''
   }
@@ -94,6 +122,18 @@ export class ReviewSession {
   }
   clearSelection = (): void => {
     this.state.selectedIds = new Set()
+  }
+
+  toggleGroupSelection = (): void => {
+    const group = this.activeGroup
+    if (!group) return
+    const selected = new Set(this.state.selectedIds)
+    const hasSelection = group.files.some((file) => selected.has(file.id))
+    group.files.forEach((file) => {
+      if (hasSelection) selected.delete(file.id)
+      else selected.add(file.id)
+    })
+    this.state.selectedIds = selected
   }
 
   toggleFile = (id: string): void => {

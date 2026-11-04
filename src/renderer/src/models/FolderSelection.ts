@@ -9,6 +9,8 @@ export class FolderSelection {
     balanced: 'Allows moderate differences in quality and appearance.',
     flexible:
       'Finds more candidates, but may group different photos together. Review each group before deleting.',
+    broad:
+      'Allows slightly larger differences than Flexible in photos and videos. Angle changes may still be missed, and unrelated files may be grouped. Review every file before deleting.',
   }
 
   get selectedFolders(): string[] {

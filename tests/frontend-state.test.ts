@@ -90,10 +90,9 @@ test('review model keeps counts reactive, allows selecting all, and preserves fa
   scan.complete(data)
   review.begin(data)
   const count = computed(() => review.selectedCounts.group)
-  assert.equal(count.value, 1)
-  assert.equal(review.selectedFiles[0].id, 'small')
+  assert.equal(count.value, 2)
+  assert.equal(review.selectedFiles[0].id, 'medium')
   review.toggleFile('large')
-  review.toggleFile('medium')
   assert.equal(count.value, 3)
   assert.equal(review.selectedSize, 600)
   review.applyTrashResult({
@@ -134,7 +133,7 @@ test('controller coordinates scan events, failed trash, cancellation, and listen
   assert.equal(controller.state.previewFile, null)
   assert.equal(controller.state.deleting, false)
   assert.equal(controller.state.isError, true)
-  assert.equal(controller.review.selectedFiles[0].id, 'small')
+  assert.equal(controller.review.selectedFiles[0].id, 'medium')
   controller.goHome()
   assert.deepEqual(controller.folders.state.paths, [''])
   assert.equal(controller.folders.state.similarity, 'strict')
@@ -143,4 +142,69 @@ test('controller coordinates scan events, failed trash, cancellation, and listen
   assert.equal(controller.state.message, 'Scan canceled. No files were removed.')
   controller.dispose()
   assert.equal(desktop.listener, undefined)
+})
+
+test('review preserves the highest-resolution file and group toggles leave other groups unchanged', () => {
+  const scan = new ScanSession()
+  const review = new ReviewSession(scan)
+  const data = result()
+  data.groups[0].files[2].width = 200
+  data.groups.push({
+    id: 'other',
+    kind: 'image',
+    match: 'exact',
+    files: [file('other-small', 50), file('other-large', 500)],
+  })
+  scan.complete(data)
+  review.begin(data)
+  assert.equal(review.highestResolutionId, 'small')
+  assert.deepEqual([...review.state.selectedIds], ['large', 'medium', 'other-small'])
+  assert.equal(review.potentialSpace, 550)
+  review.toggleGroupSelection()
+  assert.deepEqual([...review.state.selectedIds], ['other-small'])
+  review.toggleGroupSelection()
+  assert.equal(review.selectedCounts.group, 3)
+  assert.equal(review.selectedCounts.other, 1)
+  review.toggleFile('large')
+  review.toggleGroupSelection()
+  assert.equal(review.selectedCounts.group, 0)
+  assert.equal(review.selectedCounts.other, 1)
+  review.selectGroup('other')
+  assert.equal(review.highestResolutionId, 'other-large')
+  review.toggleGroupSelection()
+  assert.equal(review.selectedFiles.length, 0)
+  review.setFilter('video')
+  review.toggleGroupSelection()
+  assert.equal(review.selectedFiles.length, 0)
+})
+
+test('group navigation respects filters and boundaries without changing selections', () => {
+  const scan = new ScanSession()
+  const review = new ReviewSession(scan)
+  const data = result()
+  data.groups.push(
+    { id: 'video', kind: 'video', match: 'exact', files: [file('v1', 200), file('v2', 100)] },
+    { id: 'last', kind: 'image', match: 'exact', files: [file('p1', 200), file('p2', 100)] },
+  )
+  scan.complete(data)
+  review.begin(data)
+  const selected = [...review.state.selectedIds]
+  review.navigateGroup(-1)
+  assert.equal(review.activeGroup?.id, 'group')
+  review.navigateGroup(1)
+  assert.equal(review.activeGroup?.id, 'video')
+  review.navigateGroup(1)
+  review.navigateGroup(1)
+  assert.equal(review.activeGroup?.id, 'last')
+  review.setFilter('image')
+  assert.equal(review.activeGroupIndex, 1)
+  review.navigateGroup(-1)
+  assert.equal(review.activeGroup?.id, 'group')
+  review.navigateGroup(1)
+  assert.equal(review.activeGroup?.id, 'last')
+  assert.deepEqual([...review.state.selectedIds], selected)
+  review.setFilter('video')
+  review.applyTrashResult({ deletedIds: ['v1'], errors: [] })
+  review.navigateGroup(1)
+  assert.equal(review.activeGroupIndex, -1)
 })

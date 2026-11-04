@@ -98,6 +98,9 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
         'Finds more candidates, but may group different photos together. Review each group before deleting.',
       ),
     ).toBeVisible()
+    await page.getByLabel('Similarity', { exact: true }).selectOption('broad')
+    await expect(page.getByLabel('Similarity', { exact: true })).toHaveValue('broad')
+    await expect(page.getByText(/Allows slightly larger differences than Flexible/)).toBeVisible()
     await page.screenshot({ path: '.test-output/setup.png', fullPage: true })
     await page.getByLabel('Folder to scan').fill(join(directory, 'nonexistent'))
     await page.getByRole('button', { name: 'Scan files' }).click()
@@ -119,10 +122,28 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await page.getByRole('button', { name: 'Scan files' }).click()
     await expect(page.getByText('Scan complete')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.group-list__item')).toHaveCount(2)
+    await expect(page.getByRole('button', { name: 'Previous group', exact: true })).toBeDisabled()
+    await page.getByRole('button', { name: 'Next group', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Next group', exact: true })).toBeDisabled()
+    await page.getByRole('button', { name: 'Previous group', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Previous group', exact: true })).toBeDisabled()
     await page.locator('.group-list__item').filter({ hasText: 'Photos' }).click()
     await expect(page.locator('.media-card')).toHaveCount(2)
     await expect(page.locator('.media-card input').nth(1)).toBeChecked()
     await expect(page.locator('.media-card input').first()).not.toBeChecked()
+    const videoGroup = page.locator('.group-list__item').filter({ hasText: 'Videos' })
+    await expect(videoGroup.locator('.group-list__selected-count')).toHaveText('1')
+    await page.getByRole('button', { name: 'Deselect all', exact: true }).click()
+    await expect(page.locator('.group-list__item--active .group-list__selected-count')).toHaveText(
+      '0',
+    )
+    await expect(videoGroup.locator('.group-list__selected-count')).toHaveText('1')
+    await page.getByRole('button', { name: 'Select all', exact: true }).click()
+    await expect(page.locator('.media-card input:checked')).toHaveCount(2)
+    await expect(videoGroup.locator('.group-list__selected-count')).toHaveText('1')
+    await page.getByRole('button', { name: 'Deselect all', exact: true }).click()
+    await page.locator('.media-card input').nth(1).check()
+    await expect(page.getByRole('button', { name: 'Deselect all', exact: true })).toBeVisible()
     await page.locator('.media-card input').first().check()
     await expect(page.locator('.media-card input').nth(1)).toBeChecked()
     await expect(page.locator('.group-list__item--active .group-list__selected-count')).toHaveText(

@@ -1,7 +1,12 @@
 import type { MediaFile, SimilarGroup, SimilarityLevel } from '../shared/types'
 
 const hashBits = 63
-const thresholds: Record<SimilarityLevel, number> = { strict: 4, balanced: 7, flexible: 12 }
+const thresholds: Record<SimilarityLevel, number> = {
+  strict: 4,
+  balanced: 7,
+  flexible: 12,
+  broad: 14,
+}
 
 export const hammingDistance = (left: string, right: string): number => {
   let difference = BigInt(`0x${left}`) ^ BigInt(`0x${right}`)
@@ -56,7 +61,8 @@ export const areSimilar = (
   if (!left.hashes.length || left.hashes.length !== right.hashes.length) return false
   const ratioA = left.width / left.height
   const ratioB = right.width / right.height
-  if (Math.abs(ratioA - ratioB) / Math.max(ratioA, ratioB) > 0.08) return false
+  const ratioTolerance = level === 'broad' ? 0.1 : 0.08
+  if (Math.abs(ratioA - ratioB) / Math.max(ratioA, ratioB) > ratioTolerance) return false
   if (left.kind === 'image') {
     return hammingDistance(left.hashes[0], right.hashes[0]) <= threshold
   }

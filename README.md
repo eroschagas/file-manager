@@ -16,9 +16,9 @@ This starts Vite and opens the Electron window. Vue changes appear through hot r
 The header offers **Duplicates** and **File organizer** tabs. In **Duplicates**:
 
 1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
-2. Choose **Similarity**: Strict, Balanced (default), or Flexible. Flexible finds more candidates and requires careful review. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
+2. Choose **Similarity**: Strict, Balanced (default), Flexible, or Broad. Broad allows larger visual and framing differences than Flexible for photos and videos, but can miss angle changes, group unrelated files, and take longer to scan. Review every file before deleting. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
 3. Select a group to compare versions, resolutions, and sizes. Cards use independent thumbnails. Click an image to enlarge it or a video thumbnail to play it when Chromium supports the codec. Selecting a file for the Recycle Bin does not open the original.
-4. Files appear from largest to smallest in bytes, with the smallest file in each group selected initially. Each checkbox is independent, and every file in a group may be selected. Review the selection before confirming; the confirmation identifies groups where all files will be moved. Each group in the left panel shows a pill with its current selection count.
+4. Files appear from largest to smallest in bytes. Every file is selected initially except the one with the highest resolution; ties keep the largest file in bytes. This estimates which version to keep, so review its actual quality. Each checkbox is independent, and every file in a group may be selected. The group button shows **Deselect all** while any file in that group is selected and **Select all** when none are selected; other groups retain their selections. Review the selection before confirming; the confirmation identifies groups where all files will be moved. Each group in the left panel shows a pill with its current selection count.
 
 The header stays visible. The group list and file comparison have independent scroll areas, and the selection bar remains available at the bottom.
 
@@ -43,7 +43,7 @@ Tabs are disabled during active operations. All operations run locally; no uploa
 ## How comparison works
 
 - SHA-256 detects byte-identical copies among successfully decoded media files.
-- Photos are normalized for orientation, converted to grayscale, and compared using a 63-bit DCT perceptual hash. Maximum distance is four bits in Strict mode, seven in Balanced, and twelve in Flexible. Aspect ratios must also match within tolerance. The same thresholds apply to video frames.
+- Photos are normalized for orientation, converted to grayscale, and compared using a 63-bit DCT perceptual hash. Maximum distance is four bits in Strict mode, seven in Balanced, twelve in Flexible, and fourteen in Broad. Relative aspect-ratio tolerance is 8% for the first three modes and 10% for Broad. The same thresholds apply to video frames. Broad retains duration checks, the four-frame requirement, anchor-based grouping, and uniform-frame safeguards.
 - FFprobe reads video metadata. FFmpeg extracts frames at 10%, 30%, 50%, 70%, and 90% of the duration. Matching requires similar durations, at least four similar frames, and an average distance within the threshold.
 - A hash segment index reduces unnecessary comparisons. Each group compares its members directly against a reference to avoid chaining progressively different files.
 - Nearly uniform images and frames participate only in exact matching to reduce false positives.

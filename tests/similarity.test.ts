@@ -122,3 +122,50 @@ test('orders members by bytes even when the smaller file has higher resolution',
     ['large', 'medium', 'small'],
   )
 })
+
+test('broad finds larger visual and framing differences through the candidate index', () => {
+  const hash = Array.from({ length: 14 }, (_, index) => 1n << BigInt(Math.floor((index * 63) / 15)))
+    .reduce((left, right) => left | right, 0n)
+    .toString(16)
+  assert.equal(hammingDistance('0', hash), 14)
+  const anchor = file('anchor', { hashes: ['0'], size: 300 })
+  const changed = file('changed', { hashes: [hash], size: 200 })
+  assert.equal(areSimilar(anchor, changed, 'flexible'), false)
+  assert.equal(areSimilar(anchor, changed, 'broad'), true)
+  assert.equal(groupSimilarFiles([anchor, changed], 'flexible').length, 0)
+  assert.equal(groupSimilarFiles([anchor, changed], 'broad').length, 1)
+  assert.equal(areSimilar(anchor, file('framed', { hashes: ['0'], width: 110 }), 'flexible'), false)
+  assert.equal(areSimilar(anchor, file('framed', { hashes: ['0'], width: 110 }), 'broad'), true)
+  assert.equal(
+    areSimilar(anchor, file('old-framing-match', { hashes: ['0'], width: 120 }), 'broad'),
+    false,
+  )
+  assert.equal(
+    areSimilar(anchor, file('different-shape', { hashes: ['0'], width: 200 }), 'broad'),
+    false,
+  )
+  assert.equal(areSimilar(anchor, file('too-different', { hashes: ['7fff'] }), 'broad'), false)
+  assert.equal(areSimilar(anchor, file('old-broad-match', { hashes: ['3ffff'] }), 'broad'), false)
+  assert.equal(areSimilar(anchor, file('no-signature', { hashes: [] }), 'broad'), false)
+})
+
+test('broad retains video duration, matching-frame and average-distance checks', () => {
+  const anchor = file('anchor', { kind: 'video', duration: 60, hashes: Array<string>(5).fill('0') })
+  const changed = file('changed', {
+    kind: 'video',
+    duration: 60,
+    hashes: ['3fff', '3fff', '3fff', '3fff', '0'],
+  })
+  assert.equal(areSimilar(anchor, changed, 'flexible'), false)
+  assert.equal(areSimilar(anchor, changed, 'broad'), true)
+  assert.equal(groupSimilarFiles([anchor, changed], 'broad').length, 1)
+  assert.equal(areSimilar(anchor, { ...changed, duration: 80 }, 'broad'), false)
+  assert.equal(
+    areSimilar(anchor, { ...changed, hashes: ['3fff', '3fff', '3fff', '7fff', '7fff'] }, 'broad'),
+    false,
+  )
+  assert.equal(
+    areSimilar(anchor, { ...changed, hashes: ['3fff', '3fff', '3fff', '3fff', '7fff'] }, 'broad'),
+    false,
+  )
+})

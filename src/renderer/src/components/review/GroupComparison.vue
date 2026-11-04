@@ -1,5 +1,20 @@
 <template>
   <section class="group-detail">
+    <nav class="group-detail__navigation" aria-label="Group navigation">
+      <span>Group {{ groupIndex + 1 }} of {{ groupCount }}</span>
+      <UiButton
+        :disabled="deleting || groupIndex <= 0"
+        aria-label="Previous group"
+        @click="emit('prev')"
+        ><PhCaretLeft :size="16" /> Prev</UiButton
+      >
+      <UiButton
+        :disabled="deleting || groupIndex < 0 || groupIndex >= groupCount - 1"
+        aria-label="Next group"
+        @click="emit('next')"
+        >Next <PhCaretRight :size="16"
+      /></UiButton>
+    </nav>
     <div class="group-detail__heading">
       <div>
         <UiEyebrow>
@@ -11,20 +26,26 @@
           Recycle Bin.
         </p>
       </div>
-      <span class="group-detail__type"
-        ><PhImage v-if="group.kind === 'image'" :size="19" /><PhFilmStrip v-else :size="19"
-      /></span>
+      <div class="group-detail__actions">
+        <UiButton :disabled="deleting" @click="emit('toggleGroup')">{{
+          hasSelection ? 'Deselect all' : 'Select all'
+        }}</UiButton>
+        <!-- <span class="group-detail__type"
+          ><PhImage v-if="group.kind === 'image'" :size="19" /><PhFilmStrip v-else :size="19"
+        /></span> -->
+      </div>
     </div>
-    <div class="group-detail__hint">
+    <!-- <div class="group-detail__hint">
       <PhInfo :size="19" />
       <p>
+        All except the highest-resolution file are selected initially; file size breaks ties.
         {{
           group.kind === 'video'
             ? 'The comparison uses frames from five points in the video. Also check the audio and the full content.'
             : 'Higher resolution is a reference, but does not guarantee better quality. Check the details before deleting.'
         }}
       </p>
-    </div>
+    </div> -->
     <div class="group-detail__cards">
       <MediaCard
         v-for="file in group.files"
@@ -43,22 +64,31 @@
 </template>
 
 <script setup lang="ts">
-import { PhImage, PhFilmStrip, PhInfo } from '@phosphor-icons/vue'
+import { PhImage, PhFilmStrip, PhInfo, PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue'
 import MediaCard from '../MediaCard.vue'
 import UiEyebrow from '../ui/UiEyebrow.vue'
-import { type PropType } from 'vue'
+import UiButton from '../ui/UiButton.vue'
+import { computed, type PropType } from 'vue'
 import type { MediaFile, SimilarGroup } from '../../../../shared/types'
 const props = defineProps({
   group: { type: Object as PropType<SimilarGroup>, required: true },
   selectedIds: { type: Object as PropType<Set<string>>, required: true },
   highestResolutionId: { type: String, default: undefined },
   deleting: { type: Boolean, default: false },
+  groupIndex: { type: Number, default: 0 },
+  groupCount: { type: Number, default: 1 },
 })
 const emit = defineEmits<{
   toggle: [id: string]
+  toggleGroup: []
+  prev: []
+  next: []
   reveal: [id: string]
   preview: [file: MediaFile]
 }>()
+const hasSelection = computed(() =>
+  props.group.files.some((file) => props.selectedIds.has(file.id)),
+)
 </script>
 
 <style lang="scss" scoped>
@@ -69,6 +99,26 @@ const emit = defineEmits<{
   scrollbar-gutter: stable;
   padding-right: 6px;
   min-width: 0;
+  &__navigation {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 0 12px;
+    background: #f7f8fa;
+    > span {
+      margin-right: auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    > button {
+      min-height: 36px;
+      padding: 8px 12px;
+    }
+  }
   &__heading {
     display: flex;
     align-items: center;
@@ -96,6 +146,12 @@ const emit = defineEmits<{
     border: 1px solid var(--border);
     color: var(--muted);
     background: white;
+  }
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
   }
   &__hint {
     display: flex;

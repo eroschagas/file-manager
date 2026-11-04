@@ -1,7 +1,7 @@
 import type { OrganizerApi } from './organizer'
 
 export type MediaKind = 'image' | 'video'
-export const similarityLevels = ['strict', 'balanced', 'flexible'] as const
+export const similarityLevels = ['strict', 'balanced', 'flexible', 'broad'] as const
 export type SimilarityLevel = (typeof similarityLevels)[number]
 
 export interface MediaFile {

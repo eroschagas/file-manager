@@ -37,6 +37,7 @@
           <option value="strict">Strict — nearly identical files</option>
           <option value="balanced">Balanced — moderate differences</option>
           <option value="flexible">Flexible — less similar files</option>
+          <option value="broad">Broad — slightly larger differences</option>
         </select>
         <PhCaretDown :size="16" aria-hidden="true" />
       </div>
