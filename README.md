@@ -16,7 +16,9 @@ This starts Vite and opens the Electron window. Vue changes appear through hot r
 1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
 2. Choose **Similarity**: Strict, Balanced (default), or Flexible. Flexible finds more candidates and requires careful review. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
 3. Select a group to compare versions, resolutions, and sizes. Cards use independent thumbnails. Click an image to enlarge it or a video thumbnail to play it when Chromium supports the codec. Selecting a file for the Recycle Bin does not open the original.
-4. Files appear from largest to smallest in bytes, with the smallest file in each group selected initially. Review the selection before confirming. In a group of two files, selecting the other file switches the selection automatically. At least one available copy must remain in each group.
+4. Files appear from largest to smallest in bytes, with the smallest file in each group selected initially. Each checkbox is independent, and every file in a group may be selected. Review the selection before confirming; the confirmation identifies groups where all files will be moved. Each group in the left panel shows a pill with its current selection count.
+
+The header stays visible. The group list and file comparison have independent scroll areas, and the selection bar remains available at the bottom.
 
 During the current app session, the folder picker remembers the parent of the last selected folder. For multiple folders, it opens their nearest common ancestor; across different drives, it uses the parent of the last folder. Returning from results clears the inputs and leaves one empty field while preserving the picker location.
 

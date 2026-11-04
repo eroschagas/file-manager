@@ -20,110 +20,112 @@
     </div>
 
     <main v-if="screen === 'setup'" class="setup">
-      <div class="setup__eyebrow"><span></span> MORE SPACE. FEWER COPIES.</div>
-      <h1>Find what is taking<br />up space twice<span>.</span></h1>
-      <p class="setup__description">
-        Compare similar photos and videos, even at different quality levels.<br />You decide what
-        stays and what goes to the Recycle Bin.
-      </p>
+      <div class="setup__content">
+        <div class="setup__eyebrow"><span></span> MORE SPACE. FEWER COPIES.</div>
+        <h1>Find what is taking<br />up space twice<span>.</span></h1>
+        <p class="setup__description">
+          Compare similar photos and videos, even at different quality levels.<br />You decide what
+          stays and what goes to the Recycle Bin.
+        </p>
 
-      <form class="folder-form" @submit.prevent="startScan">
-        <div class="folder-form__heading">
-          <span class="folder-form__icon"><PhFolderSimple :size="26" /></span>
-          <div>
-            <h2>Where should we start?</h2>
-            <p>Choose one or more folders to organize together.</p>
+        <form class="folder-form" @submit.prevent="startScan">
+          <div class="folder-form__heading">
+            <span class="folder-form__icon"><PhFolderSimple :size="26" /></span>
+            <div>
+              <h2>Where should we start?</h2>
+              <p>Choose one or more folders to organize together.</p>
+            </div>
           </div>
-        </div>
-        <div v-for="(_path, index) in folderPaths" :key="index" class="folder-form__entry">
-          <label :for="`folderPath${index}`">{{
-            index === 0 ? 'Folder to scan' : `Folder to scan ${index + 1}`
-          }}</label>
-          <div class="folder-form__input-row">
-            <input
-              :id="`folderPath${index}`"
-              v-model="folderPaths[index]"
-              placeholder="e.g. C:\Users\you\Pictures"
-              autocomplete="off"
-              spellcheck="false"
-              :disabled="starting"
-            /><button
-              class="button button--secondary"
-              type="button"
-              :disabled="starting"
-              @click="chooseFolder(index)"
-            >
-              <PhFolderOpen :size="18" /> Browse folders
-            </button>
-            <button
-              v-if="folderPaths.length > 1"
-              class="icon-button"
-              type="button"
-              :aria-label="`Remove folder ${index + 1}`"
-              :disabled="starting"
-              @click="folderPaths.splice(index, 1)"
-            >
-              <PhX :size="18" />
-            </button>
+          <div v-for="(_path, index) in folderPaths" :key="index" class="folder-form__entry">
+            <label :for="`folderPath${index}`">{{
+              index === 0 ? 'Folder to scan' : `Folder to scan ${index + 1}`
+            }}</label>
+            <div class="folder-form__input-row">
+              <input
+                :id="`folderPath${index}`"
+                v-model="folderPaths[index]"
+                placeholder="e.g. C:\Users\you\Pictures"
+                autocomplete="off"
+                spellcheck="false"
+                :disabled="starting"
+              /><button
+                class="button button--secondary"
+                type="button"
+                :disabled="starting"
+                @click="chooseFolder(index)"
+              >
+                <PhFolderOpen :size="18" /> Browse folders
+              </button>
+              <button
+                v-if="folderPaths.length > 1"
+                class="icon-button"
+                type="button"
+                :aria-label="`Remove folder ${index + 1}`"
+                :disabled="starting"
+                @click="folderPaths.splice(index, 1)"
+              >
+                <PhX :size="18" />
+              </button>
+            </div>
           </div>
-        </div>
-        <button
-          type="button"
-          class="text-button folder-form__add"
-          :disabled="starting"
-          @click="folderPaths.push('')"
-        >
-          + Add folder
-        </button>
-        <div class="folder-form__recursive">
-          <PhTreeStructure :size="17" /><span>All subfolders will be scanned automatically.</span>
-        </div>
-        <div class="folder-form__similarity">
-          <label for="similarityLevel">Similarity</label>
-          <div class="folder-form__select">
-            <select id="similarityLevel" v-model="similarityLevel" :disabled="starting">
-              <option value="strict">Strict — nearly identical files</option>
-              <option value="balanced">Balanced — moderate differences</option>
-              <option value="flexible">Flexible — less similar files</option>
-            </select>
-            <PhCaretDown :size="16" aria-hidden="true" />
-          </div>
-          <p>{{ similarityDescriptions[similarityLevel] }}</p>
-        </div>
-        <div class="folder-form__footer">
-          <span
-            ><PhImage :size="16" /> Photos <span class="separator">/</span>
-            <PhFilmStrip :size="16" /> Videos</span
-          ><button
-            class="button button--primary"
-            type="submit"
-            :disabled="!selectedFolders.length || starting"
+          <button
+            type="button"
+            class="text-button folder-form__add"
+            :disabled="starting"
+            @click="folderPaths.push('')"
           >
-            {{ starting ? 'Preparing…' : 'Scan files' }}<PhArrowRight :size="18" />
+            + Add folder
           </button>
-        </div>
-      </form>
+          <div class="folder-form__recursive">
+            <PhTreeStructure :size="17" /><span>All subfolders will be scanned automatically.</span>
+          </div>
+          <div class="folder-form__similarity">
+            <label for="similarityLevel">Similarity</label>
+            <div class="folder-form__select">
+              <select id="similarityLevel" v-model="similarityLevel" :disabled="starting">
+                <option value="strict">Strict — nearly identical files</option>
+                <option value="balanced">Balanced — moderate differences</option>
+                <option value="flexible">Flexible — less similar files</option>
+              </select>
+              <PhCaretDown :size="16" aria-hidden="true" />
+            </div>
+            <p>{{ similarityDescriptions[similarityLevel] }}</p>
+          </div>
+          <div class="folder-form__footer">
+            <span
+              ><PhImage :size="16" /> Photos <span class="separator">/</span>
+              <PhFilmStrip :size="16" /> Videos</span
+            ><button
+              class="button button--primary"
+              type="submit"
+              :disabled="!selectedFolders.length || starting"
+            >
+              {{ starting ? 'Preparing…' : 'Scan files' }}<PhArrowRight :size="18" />
+            </button>
+          </div>
+        </form>
 
-      <div class="setup__steps">
-        <div>
-          <span>01</span>
-          <h3>Choose a folder</h3>
-          <p>We search for photos and videos<br />in every subfolder.</p>
+        <div class="setup__steps">
+          <div>
+            <span>01</span>
+            <h3>Choose a folder</h3>
+            <p>We search for photos and videos<br />in every subfolder.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <h3>Compare similar files</h3>
+            <p>View versions side by side<br />and check the details.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <h3>Free up space</h3>
+            <p>Select copies and confirm<br />before moving them to the Recycle Bin.</p>
+          </div>
         </div>
-        <div>
-          <span>02</span>
-          <h3>Compare similar files</h3>
-          <p>View versions side by side<br />and check the details.</p>
-        </div>
-        <div>
-          <span>03</span>
-          <h3>Free up space</h3>
-          <p>Select copies and confirm<br />before moving them to the Recycle Bin.</p>
-        </div>
+        <p class="setup__footnote">
+          <PhLockSimple :size="14" /> No files are removed during the scan.
+        </p>
       </div>
-      <p class="setup__footnote">
-        <PhLockSimple :size="14" /> No files are removed during the scan.
-      </p>
     </main>
 
     <main v-else-if="screen === 'scanning'" class="scan-view">
@@ -161,46 +163,47 @@
     </main>
 
     <main v-else-if="result" class="results">
-      <div class="results__heading">
-        <div>
-          <button class="text-button" :disabled="deleting" @click="goHome">
-            <PhArrowLeft :size="16" /> Scan another folder
-          </button>
-          <h1>A place for every version<span>.</span></h1>
-          <p v-for="root in result.roots" :key="root" :title="root">
-            <PhFolderSimple :size="16" /> {{ root }}
+      <div class="results__overview">
+        <div class="results__heading">
+          <div>
+            <button class="text-button" :disabled="deleting" @click="goHome">
+              <PhArrowLeft :size="16" /> Scan another folder
+            </button>
+            <h1>A place for every version<span>.</span></h1>
+            <p v-for="root in result.roots" :key="root" :title="root">
+              <PhFolderSimple :size="16" /> <span>{{ root }}</span>
+            </p>
+          </div>
+          <span class="results__complete"
+            ><PhCheckCircle :size="17" weight="fill" /> Scan complete</span
+          >
+        </div>
+        <div class="summary">
+          <div>
+            <span>FILES SCANNED</span
+            ><strong>{{ result.analyzedFiles.toLocaleString('en-US') }}</strong
+            ><small>in {{ formatDuration(result.elapsedMs / 1000) }} · including subfolders</small>
+          </div>
+          <div>
+            <span>SIMILAR GROUPS</span
+            ><strong>{{ result.groups.length }}<small> groups</small></strong
+            ><small>{{ groupedCount }} files to compare</small>
+          </div>
+          <div>
+            <span>SPACE USED BY COPIES</span><strong>{{ formatBytes(potentialSpace) }}</strong
+            ><small>estimate keeping one file per group</small>
+          </div>
+        </div>
+        <details v-if="result.issues.length" class="issues">
+          <summary>
+            <PhWarningCircle :size="17" /> {{ result.issues.length }} item(s) could not be scanned
+          </summary>
+          <p v-for="issue in result.issues" :key="`${issue.path}:${issue.message}`">
+            <strong>{{ issue.path }}</strong
+            ><br />{{ issue.message }}
           </p>
-        </div>
-        <span class="results__complete"
-          ><PhCheckCircle :size="17" weight="fill" /> Scan complete</span
-        >
+        </details>
       </div>
-      <div class="summary">
-        <div>
-          <span>FILES SCANNED</span
-          ><strong>{{ result.analyzedFiles.toLocaleString('en-US') }}</strong
-          ><small>in {{ formatDuration(result.elapsedMs / 1000) }} · including subfolders</small>
-        </div>
-        <div>
-          <span>SIMILAR GROUPS</span
-          ><strong>{{ result.groups.length }}<small> groups</small></strong
-          ><small>{{ groupedCount }} files to compare</small>
-        </div>
-        <div>
-          <span>SPACE USED BY COPIES</span><strong>{{ formatBytes(potentialSpace) }}</strong
-          ><small>estimate keeping one file per group</small>
-        </div>
-      </div>
-      <details v-if="result.issues.length" class="issues">
-        <summary>
-          <PhWarningCircle :size="17" /> {{ result.issues.length }} item(s) could not be scanned
-        </summary>
-        <p v-for="issue in result.issues" :key="`${issue.path}:${issue.message}`">
-          <strong>{{ issue.path }}</strong
-          ><br />{{ issue.message }}
-        </p>
-      </details>
-
       <div v-if="result.groups.length" class="comparison">
         <aside class="group-list">
           <div class="group-list__heading">
@@ -240,6 +243,13 @@
                   >{{ group.files.length }} files ·
                   {{ group.match === 'exact' ? 'Identical' : 'Similar' }}</small
                 ></span
+              ><span
+                :class="[
+                  'group-list__selected-count',
+                  { 'group-list__selected-count--active': selectedCounts[group.id] > 0 },
+                ]"
+                :aria-label="`${selectedCounts[group.id]} files selected in this group`"
+                >{{ selectedCounts[group.id] }}</span
               ><PhCaretRight :size="16" />
             </button>
           </div>
@@ -255,8 +265,8 @@
               </div>
               <h2>Compare before choosing</h2>
               <p>
-                {{ activeGroup.files.length }} versions, largest to smallest · keep at least one
-                file.
+                {{ activeGroup.files.length }} versions, largest to smallest · select the files to
+                move to the Recycle Bin.
               </p>
             </div>
             <span class="group-detail__type"
@@ -283,12 +293,7 @@
               :suspend-preview="deleting"
               :preferred="file.id === highestResolutionId && activeGroup.match !== 'exact'"
               :selected="selectedIds.has(file.id)"
-              :disabled="
-                deleting ||
-                (activeGroup.files.length > 2 &&
-                  !selectedIds.has(file.id) &&
-                  remainingInGroup(activeGroup) <= 1)
-              "
+              :disabled="deleting"
               @toggle="toggleSelection"
               @reveal="revealFile"
               @preview="previewFile = $event"
@@ -394,7 +399,6 @@ import type {
   MediaKind,
   ScanProgress,
   ScanResult,
-  SimilarGroup,
   SimilarityLevel,
 } from '../../shared/types'
 import MediaCard from './components/MediaCard.vue'
@@ -426,6 +430,14 @@ const progress = ref<ScanProgress>({
 const filter = ref<'all' | MediaKind>('all')
 const activeId = ref('')
 const selectedIds = ref(new Set<string>())
+const selectedCounts = computed(() =>
+  Object.fromEntries(
+    (result.value?.groups ?? []).map((group) => [
+      group.id,
+      group.files.filter((file) => selectedIds.value.has(file.id)).length,
+    ]),
+  ),
+)
 const removedCount = ref(0)
 const previewFile = ref<MediaFile | null>(null)
 const previewDialog = ref<HTMLDialogElement | null>(null)
@@ -525,8 +537,6 @@ const cancelScan = async (): Promise<void> => {
     showMessage(errorMessage(error), true)
   }
 }
-const remainingInGroup = (group: SimilarGroup): number =>
-  group.files.filter((file) => !selectedIds.value.has(file.id)).length
 const toggleSelection = (id: string): void => {
   if (deleting.value) return
   const next = new Set(selectedIds.value)
@@ -534,8 +544,6 @@ const toggleSelection = (id: string): void => {
   else {
     const group = result.value?.groups.find((entry) => entry.files.some((file) => file.id === id))
     if (!group) return
-    if (group.files.length === 2) group.files.forEach((file) => next.delete(file.id))
-    else if (remainingInGroup(group) <= 1) return
     next.add(id)
   }
   selectedIds.value = next

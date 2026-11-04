@@ -124,10 +124,33 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await expect(page.locator('.media-card input').nth(1)).toBeChecked()
     await expect(page.locator('.media-card input').first()).not.toBeChecked()
     await page.locator('.media-card input').first().check()
-    await expect(page.locator('.media-card input').nth(1)).not.toBeChecked()
-    await page.locator('.media-card input').nth(1).check()
+    await expect(page.locator('.media-card input').nth(1)).toBeChecked()
+    await expect(page.locator('.group-list__item--active .group-list__selected-count')).toHaveText(
+      '2',
+    )
+    await page.locator('.media-card input').first().uncheck()
     await expect(page.locator('.media-card input').first()).not.toBeChecked()
     await page.getByRole('button', { name: 'Clear selection', exact: true }).click()
+    await expect(page.locator('.group-list__item--active .group-list__selected-count')).toHaveText(
+      '0',
+    )
+    const scrollState = await page.evaluate(() => {
+      const detail = document.querySelector<HTMLElement>('.group-detail')!
+      const groups = document.querySelector<HTMLElement>('.group-list__items')!
+      const groupScroll = groups.scrollTop
+      const groupTop = groups.getBoundingClientRect().top
+      detail.scrollTop = detail.scrollHeight
+      return {
+        detailScroll: detail.scrollTop,
+        groupScrollUnchanged: groups.scrollTop === groupScroll,
+        groupPositionUnchanged: groups.getBoundingClientRect().top === groupTop,
+        headerTop: document.querySelector('.app-header')!.getBoundingClientRect().top,
+      }
+    })
+    expect(scrollState.detailScroll).toBeGreaterThan(0)
+    expect(scrollState.groupScrollUnchanged).toBe(true)
+    expect(scrollState.groupPositionUnchanged).toBe(true)
+    expect(scrollState.headerTop).toBe(0)
     await expect
       .poll(() =>
         page
@@ -156,7 +179,15 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await expect(page.locator('.media-card input').nth(1)).toBeEnabled()
     await expect(page.locator('.media-card input').nth(1)).not.toBeChecked()
     await page.screenshot({ path: '.test-output/comparison.png', fullPage: true })
-    const guardError = await page.evaluate(async () => {
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async (...args: unknown[]) => {
+        const options = args[args.length - 1] as Electron.MessageBoxOptions
+        if (!options.detail?.includes('All files in 1 group(s) are selected.'))
+          throw new Error('Missing all-files confirmation detail')
+        return { response: 0, checkboxChecked: false }
+      }
+    })
+    const cancelledAll = await page.evaluate(async () => {
       const ids = await new Promise<string[]>((resolve) => {
         // IDs are opaque and sourced from the preview URLs shown in this group.
         resolve(
@@ -165,14 +196,11 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
           ),
         )
       })
-      try {
-        await window.desktop.trashFiles(ids)
-        return ''
-      } catch (error) {
-        return String(error)
-      }
+      return window.desktop.trashFiles(ids)
     })
-    expect(guardError).toContain('Keep at least one available file')
+    expect(cancelledAll).toEqual({ deletedIds: [], errors: [] })
+    await access(join(directory, 'original.jpg'))
+    await access(join(directory, 'copy.jpeg'))
     await app.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
     })
@@ -238,9 +266,22 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       .first()
       .evaluate((node) => (node as HTMLVideoElement).play())
     await page.locator('.media-card input').first().check()
+    await page.locator('.media-card input').nth(1).check()
+    await expect(page.locator('.group-list__item--active .group-list__selected-count')).toHaveText(
+      '2',
+    )
     await page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'All reviewed here.' })).toBeVisible()
-    await access(join(nested, 'video-copy.mp4'))
+    await expect
+      .poll(async () => {
+        try {
+          await access(join(nested, 'video-copy.mp4'))
+          return true
+        } catch {
+          return false
+        }
+      })
+      .toBe(false)
     await page.getByRole('button', { name: 'Scan another folder', exact: true }).click()
     await expect(page.locator('.folder-form input')).toHaveCount(1)
     await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue('')

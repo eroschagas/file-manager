@@ -166,22 +166,18 @@ const setupIpc = (): void => {
       const affected = result.groups.filter((group) =>
         group.files.some((file) => selected.has(file.id)),
       )
-      // Check a real, unchanged copy will remain in every affected group.
-      for (const group of affected) {
-        const retained = group.files.filter((file) => !selected.has(file.id))
-        const available = await Promise.allSettled(retained.map(unchangedFile))
-        if (!available.some((entry) => entry.status === 'fulfilled')) {
-          throw new Error(
-            'Keep at least one available file in each group. If the folder has changed, scan it again.',
-          )
-        }
-      }
+      const allSelectedGroups = affected.filter((group) =>
+        group.files.every((file) => selected.has(file.id)),
+      ).length
       await Promise.all(selectedFiles.map(unchangedFile))
       const confirmation = await dialog.showMessageBox(window!, {
         type: 'warning',
         title: 'Move files to Recycle Bin',
         message: `Move ${selectedFiles.length} file(s) to the Recycle Bin?`,
         detail:
+          (allSelectedGroups
+            ? `All files in ${allSelectedGroups} group(s) are selected. No copies from those groups will remain in their folders.\n\n`
+            : '') +
           'Review the images and videos before confirming. You can restore the files from the system Recycle Bin.',
         buttons: ['Cancel', 'Move to Recycle Bin'],
         defaultId: 0,
@@ -193,14 +189,6 @@ const setupIpc = (): void => {
       const response: TrashResult = { deletedIds: [], errors: [] }
       for (const file of selectedFiles) {
         try {
-          const group = affected.find((entry) =>
-            entry.files.some((entryFile) => entryFile.id === file.id),
-          )!
-          const retained = await Promise.allSettled(
-            group.files.filter((entry) => !selected.has(entry.id)).map(unchangedFile),
-          )
-          if (!retained.some((entry) => entry.status === 'fulfilled'))
-            throw new Error('The copy to keep is no longer available.')
           await unchangedFile(file)
           await shell.trashItem(file.path)
           response.deletedIds.push(file.id)
