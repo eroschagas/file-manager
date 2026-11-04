@@ -264,6 +264,13 @@ button {
   }
 }
 .folder-form {
+  &__entry + &__entry {
+    margin-top: 14px;
+  }
+  &__add {
+    margin-top: 14px;
+    color: var(--primary);
+  }
   padding: 27px;
   margin: 33px auto 0;
   max-width: 680px;

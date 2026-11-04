@@ -32,27 +32,49 @@
           <span class="folder-form__icon"><PhFolderSimple :size="26" /></span>
           <div>
             <h2>Por onde vamos começar?</h2>
-            <p>Escolha a pasta que você quer organizar.</p>
+            <p>Escolha uma ou mais pastas para organizar juntas.</p>
           </div>
         </div>
-        <label for="folderPath">Pasta para análise</label>
-        <div class="folder-form__input-row">
-          <input
-            id="folderPath"
-            v-model="folderPath"
-            placeholder="Ex.: C:\Users\voce\Pictures"
-            autocomplete="off"
-            spellcheck="false"
-            :disabled="starting"
-          /><button
-            class="button button--secondary"
-            type="button"
-            :disabled="starting"
-            @click="chooseFolder"
-          >
-            <PhFolderOpen :size="18" /> Procurar pasta
-          </button>
+        <div v-for="(_path, index) in folderPaths" :key="index" class="folder-form__entry">
+          <label :for="`folderPath${index}`">{{
+            index === 0 ? 'Pasta para análise' : `Pasta para análise ${index + 1}`
+          }}</label>
+          <div class="folder-form__input-row">
+            <input
+              :id="`folderPath${index}`"
+              v-model="folderPaths[index]"
+              placeholder="Ex.: C:\Users\voce\Pictures"
+              autocomplete="off"
+              spellcheck="false"
+              :disabled="starting"
+            /><button
+              class="button button--secondary"
+              type="button"
+              :disabled="starting"
+              @click="chooseFolder(index)"
+            >
+              <PhFolderOpen :size="18" /> Procurar pasta
+            </button>
+            <button
+              v-if="folderPaths.length > 1"
+              class="icon-button"
+              type="button"
+              :aria-label="`Remover pasta ${index + 1}`"
+              :disabled="starting"
+              @click="folderPaths.splice(index, 1)"
+            >
+              <PhX :size="18" />
+            </button>
+          </div>
         </div>
+        <button
+          type="button"
+          class="text-button folder-form__add"
+          :disabled="starting"
+          @click="folderPaths.push('')"
+        >
+          + Adicionar pasta
+        </button>
         <div class="folder-form__recursive">
           <PhTreeStructure :size="17" /><span
             >As subpastas também serão analisadas automaticamente.</span
@@ -65,7 +87,7 @@
           ><button
             class="button button--primary"
             type="submit"
-            :disabled="!folderPath.trim() || starting"
+            :disabled="!selectedFolders.length || starting"
           >
             {{ starting ? 'Preparando…' : 'Analisar arquivos' }}<PhArrowRight :size="18" />
           </button>
@@ -117,7 +139,7 @@
         ><span v-if="progress.phase === 'analyzing'">{{ percent }}%</span>
       </div>
       <p class="scan-view__file" :title="progress.currentFile">
-        {{ progress.currentFile || folderPath }}
+        {{ progress.currentFile || selectedFolders.join(' · ') }}
       </p>
       <p v-if="progress.skipped" class="scan-view__skipped">
         {{ progress.skipped }} arquivo(s) não puderam ser lidos. Você verá os detalhes ao final.
@@ -134,7 +156,9 @@
             <PhArrowLeft :size="16" /> Analisar outra pasta
           </button>
           <h1>Um lugar para cada versão<span>.</span></h1>
-          <p :title="result.root"><PhFolderSimple :size="16" /> {{ result.root }}</p>
+          <p v-for="root in result.roots" :key="root" :title="root">
+            <PhFolderSimple :size="16" /> {{ root }}
+          </p>
         </div>
         <span class="results__complete"
           ><PhCheckCircle :size="17" weight="fill" /> Análise concluída</span
@@ -362,7 +386,8 @@ import MediaCard from './components/MediaCard.vue'
 import { formatBytes, formatDuration, thumbnailUrl } from './format'
 
 const screen = ref<'setup' | 'scanning' | 'results'>('setup')
-const folderPath = ref('')
+const folderPaths = ref([''])
+const selectedFolders = computed(() => folderPaths.value.map((path) => path.trim()).filter(Boolean))
 const starting = ref(false)
 const cancelling = ref(false)
 const deleting = ref(false)
@@ -433,16 +458,19 @@ const errorMessage = (error: unknown): string =>
   error instanceof Error
     ? error.message.replace(/^Error invoking remote method '[^']+': Error: /, '')
     : String(error)
-const chooseFolder = async (): Promise<void> => {
+const chooseFolder = async (index: number): Promise<void> => {
   try {
-    const folder = await window.desktop.chooseFolder()
-    if (folder) folderPath.value = folder
+    const folders = await window.desktop.chooseFolder()
+    if (folders.length) {
+      folderPaths.value.splice(index, 1, ...folders)
+      folderPaths.value = [...new Set(folderPaths.value)]
+    }
   } catch (error) {
     showMessage(errorMessage(error), true)
   }
 }
 const startScan = async (): Promise<void> => {
-  if (starting.value || !folderPath.value.trim()) return
+  if (starting.value || !selectedFolders.value.length) return
   starting.value = true
   message.value = ''
   progress.value = { phase: 'discovering', total: 0, processed: 0, currentFile: '', skipped: 0 }
@@ -452,7 +480,7 @@ const startScan = async (): Promise<void> => {
   removedCount.value = 0
   filter.value = 'all'
   try {
-    await window.desktop.startScan(folderPath.value)
+    await window.desktop.startScan(selectedFolders.value)
   } catch (error) {
     screen.value = 'setup'
     showMessage(errorMessage(error), true)

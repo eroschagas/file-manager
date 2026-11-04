@@ -1,12 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { createReadStream } from 'node:fs'
-import { mkdir, readFile, readdir, realpath, stat } from 'node:fs/promises'
+import { mkdir, readFile, readdir, stat } from 'node:fs/promises'
 import { basename, extname, join, relative } from 'node:path'
 import { spawn } from 'node:child_process'
 import sharp from 'sharp'
 import ffmpegPath from 'ffmpeg-static'
 import type { MediaFile, MediaKind, ScanProgress, ScanResult } from '../shared/types'
 import { groupSimilarFiles, hasVisualDetail, perceptualHash } from './similarity'
+import { resolveFolders } from './folders'
 
 const probe = require('ffprobe-static') as { path: string }
 const imageExtensions = new Set([
@@ -85,14 +86,13 @@ const imageHash = async (input: Buffer): Promise<string | null> => {
 }
 
 export const scanFolder = async (
-  folder: string,
+  folder: string | string[],
   thumbnailDirectory: string,
   signal: AbortSignal,
   onProgress: (progress: ScanProgress) => void,
 ): Promise<ScanResult> => {
   const started = Date.now()
-  const root = await realpath(folder)
-  if (!(await stat(root)).isDirectory()) throw new Error('Informe o caminho de uma pasta.')
+  const roots = await resolveFolders(Array.isArray(folder) ? folder : [folder])
   await mkdir(thumbnailDirectory, { recursive: true })
   const paths: string[] = []
   const issues: ScanResult['issues'] = []
@@ -110,7 +110,7 @@ export const scanFolder = async (
       lastProgress = Date.now()
     }
   }
-  const pending = [root]
+  const pending = [...roots]
   while (pending.length) {
     signal.throwIfAborted()
     const directory = pending.pop()!
@@ -239,7 +239,7 @@ export const scanFolder = async (
       files.push({
         id,
         path,
-        relativePath: relative(root, path),
+        relativePath: roots.length === 1 ? relative(roots[0], path) : path,
         name: basename(path),
         kind,
         size: before.size,
@@ -266,7 +266,7 @@ export const scanFolder = async (
   const groups = groupSimilarFiles(files)
   signal.throwIfAborted()
   return {
-    root,
+    roots,
     groups,
     totalFiles: paths.length,
     analyzedFiles: files.length,

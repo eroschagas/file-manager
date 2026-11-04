@@ -32,7 +32,7 @@ export interface ScanProgress {
 }
 
 export interface ScanResult {
-  root: string
+  roots: string[]
   groups: SimilarGroup[]
   totalFiles: number
   analyzedFiles: number
@@ -52,8 +52,8 @@ export type WorkerEvent =
   | { type: 'error'; message: string }
 
 export interface DesktopApi {
-  chooseFolder: () => Promise<string | null>
-  startScan: (path: string) => Promise<void>
+  chooseFolder: () => Promise<string[]>
+  startScan: (paths: string[]) => Promise<void>
   cancelScan: () => Promise<void>
   trashFiles: (ids: string[]) => Promise<TrashResult>
   revealFile: (id: string) => Promise<void>

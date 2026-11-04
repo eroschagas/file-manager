@@ -13,8 +13,8 @@ npm run dev
 
 O comando inicia o Vite e abre a janela do Electron. Alterações na interface Vue aparecem com hot reload. Use **Ctrl + Shift + I** para abrir o DevTools durante o desenvolvimento. Abrir apenas o endereço do Vite no navegador não disponibiliza as operações de arquivos.
 
-1. Digite o caminho completo da pasta ou use **Procurar pasta**.
-2. Clique em **Analisar arquivos**. A busca inclui todas as subpastas reais; links simbólicos e junções não são seguidos.
+1. Digite o caminho completo da pasta ou use **Procurar pasta**, que permite selecionar várias pastas. Use **Adicionar pasta** para incluir mais caminhos manualmente e o botão de remover para retirar uma entrada.
+2. Clique em **Analisar arquivos**. Os arquivos de todas as pastas são comparados juntos. A busca inclui todas as subpastas reais; links simbólicos e junções não são seguidos. Pastas repetidas ou contidas em outra selecionada são analisadas uma única vez. Campos vazios são ignorados; caminhos inválidos impedem o início da análise.
 3. Selecione um grupo para comparar as versões, as resoluções e os tamanhos. Os cards usam miniaturas independentes dos originais. Clique na imagem para ampliar ou na miniatura do vídeo para reproduzir, quando o codec for suportado pelo Chromium. Marcar um arquivo para a lixeira não abre o original.
 4. Marque manualmente os arquivos que deseja enviar à lixeira e confirme no diálogo do sistema. É obrigatório manter pelo menos uma cópia disponível em cada grupo.
 

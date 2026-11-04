@@ -9,8 +9,11 @@ const send = (event: WorkerEvent): void => {
 parentPort?.on('message', (message) => {
   if (message === 'cancel') controller.abort()
 })
-const { folder, thumbnailDirectory } = workerData as { folder: string; thumbnailDirectory: string }
-scanFolder(folder, thumbnailDirectory, controller.signal, (progress) =>
+const { folders, thumbnailDirectory } = workerData as {
+  folders: string[]
+  thumbnailDirectory: string
+}
+scanFolder(folders, thumbnailDirectory, controller.signal, (progress) =>
   send({ type: 'progress', progress }),
 )
   .then((result) => send({ type: 'complete', result }))

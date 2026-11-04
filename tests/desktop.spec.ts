@@ -97,6 +97,18 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await expect(page.getByRole('status')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Por onde vamos começar?' })).toBeVisible()
     await page.getByLabel('Pasta para análise').fill(directory)
+    await page.getByRole('button', { name: '+ Adicionar pasta', exact: true }).click()
+    await page.getByLabel('Pasta para análise 2', { exact: true }).fill(nested)
+    await page.getByRole('button', { name: 'Remover pasta 2', exact: true }).click()
+    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(directory)
+    await app.evaluate(
+      ({ dialog }, paths) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: paths })
+      },
+      [directory, nested],
+    )
+    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
+    await expect(page.getByLabel('Pasta para análise 2', { exact: true })).toHaveValue(nested)
     await page.getByRole('button', { name: 'Analisar arquivos' }).click()
     await expect(page.getByText('Análise concluída')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.group-list__item')).toHaveCount(2)

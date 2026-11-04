@@ -1,12 +1,13 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from 'electron'
 import { createReadStream } from 'node:fs'
 import { lstat, mkdir, mkdtemp, readFile, realpath, rm, stat } from 'node:fs/promises'
-import { extname, isAbsolute, join, relative } from 'node:path'
+import { extname, join } from 'node:path'
 import { Readable } from 'node:stream'
 import { pathToFileURL } from 'node:url'
 import { Worker } from 'node:worker_threads'
 import type { MediaFile, ScanResult, TrashResult, WorkerEvent } from '../shared/types'
 import { MediaStreams, trashErrorMessage } from './media-streams'
+import { isInsideFolder, resolveFolders } from './folders'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -64,16 +65,6 @@ const createWindow = (): void => {
   })
 }
 
-const inside = (root: string, target: string): boolean => {
-  const path = relative(root, target)
-  return (
-    path !== '' &&
-    path !== '..' &&
-    !path.startsWith(`..${process.platform === 'win32' ? '\\' : '/'}`) &&
-    !isAbsolute(path)
-  )
-}
-
 const unchangedFile = async (file: MediaFile): Promise<void> => {
   const info = await lstat(file.path)
   if (
@@ -85,7 +76,8 @@ const unchangedFile = async (file: MediaFile): Promise<void> => {
     throw new Error('Arquivo alterado desde a análise. Analise a pasta novamente.')
   }
   const resolved = await realpath(file.path)
-  if (!result || !inside(result.root, resolved)) throw new Error('Arquivo fora da pasta analisada.')
+  if (!result || !result.roots.some((root) => isInsideFolder(root, resolved)))
+    throw new Error('Arquivo fora das pastas analisadas.')
 }
 
 const setupIpc = (): void => {
@@ -104,23 +96,20 @@ const setupIpc = (): void => {
   }
   handle('folder:choose', async () => {
     const selection = await dialog.showOpenDialog(window!, {
-      properties: ['openDirectory'],
-      title: 'Escolha a pasta para analisar',
+      properties: ['openDirectory', 'multiSelections'],
+      title: 'Escolha as pastas para analisar',
     })
-    return selection.canceled ? null : selection.filePaths[0]
+    return selection.canceled ? [] : selection.filePaths
   })
-  handle('scan:start', async (folder: unknown) => {
+  handle('scan:start', async (folders: unknown) => {
     if (worker || trashBusy) throw new Error('Aguarde a operação atual terminar.')
-    if (typeof folder !== 'string' || !folder.trim() || !isAbsolute(folder.trim()))
-      throw new Error('Informe o caminho completo de uma pasta.')
-    const root = await realpath(folder.trim())
-    if (!(await stat(root)).isDirectory()) throw new Error('O caminho informado não é uma pasta.')
+    const roots = await resolveFolders(folders)
     mediaFiles.clear()
     result = null
     await rm(sessionDirectory, { recursive: true, force: true })
     await mkdir(sessionDirectory, { recursive: true })
     const current = new Worker(join(__dirname, 'analysis-worker.js'), {
-      workerData: { folder: root, thumbnailDirectory: sessionDirectory },
+      workerData: { folders: roots, thumbnailDirectory: sessionDirectory },
     })
     worker = current
     let finished = false

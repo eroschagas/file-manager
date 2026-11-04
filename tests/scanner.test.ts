@@ -17,6 +17,36 @@ test('detects supported media extensions case-insensitively', () => {
   assert.equal(mediaKind('notes.txt'), null)
 })
 
+test('compares across roots and scans overlapping or repeated folders only once', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'file-manager-multi-'))
+  const first = join(directory, 'first')
+  const child = join(first, 'child')
+  const second = join(directory, 'second')
+  await mkdir(child, { recursive: true })
+  await mkdir(second)
+  try {
+    const pixels = Buffer.from(
+      '<svg width="100" height="100"><rect width="100" height="100" fill="white"/><circle cx="35" cy="40" r="25" fill="black"/></svg>',
+    )
+    await sharp(pixels).jpeg().toFile(join(child, 'photo.jpg'))
+    await copyFile(join(child, 'photo.jpg'), join(second, 'copy.jpeg'))
+    const result = await scanFolder(
+      [child, second, first, first],
+      join(directory, 'thumbs'),
+      new AbortController().signal,
+      () => {},
+    )
+    assert.equal(result.roots.length, 2)
+    assert.equal(result.totalFiles, 2)
+    assert.equal(result.analyzedFiles, 2)
+    assert.equal(result.groups.length, 1)
+    assert.equal(result.groups[0].files.length, 2)
+    assert.equal(result.groups[0].match, 'exact')
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test(
   'scans nested folders, groups resized/recompressed images and videos, reports corrupt media',
   { timeout: 120_000 },
