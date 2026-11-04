@@ -9,6 +9,7 @@ import type { MediaFile, ScanResult, TrashResult, WorkerEvent } from '../shared/
 import { similarityLevels, type SimilarityLevel } from '../shared/types'
 import { MediaStreams, trashErrorMessage } from './media-streams'
 import { getFolderPickerDirectory, isInsideFolder, resolveFolders } from './folders'
+import { OrganizerIpc } from './organizer/OrganizerIpc'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -21,10 +22,12 @@ let window: BrowserWindow | null = null
 let worker: Worker | null = null
 let result: ScanResult | null = null
 let trashBusy = false
+let scanStarting = false
 let sessionDirectory = ''
 let folderPickerDirectory: string | undefined
 const mediaFiles = new Map<string, MediaFile>()
 const mediaStreams = new MediaStreams()
+const organizer = new OrganizerIpc()
 
 const emit = (event: WorkerEvent): void => {
   if (window && !window.isDestroyed()) window.webContents.send('scan:event', event)
@@ -64,6 +67,7 @@ const createWindow = (): void => {
   window.on('closed', () => {
     window = null
     worker?.postMessage('cancel')
+    organizer.cancel()
   })
 }
 
@@ -96,6 +100,20 @@ const setupIpc = (): void => {
       return handler(...args)
     })
   }
+  organizer.register(
+    handle,
+    () => window!,
+    () => Boolean(worker || scanStarting || trashBusy),
+    async () => {
+      mediaFiles.clear()
+      result = null
+    },
+    async () => {
+      const ids = [...mediaFiles.keys()]
+      await mediaStreams.blockAndClose(ids)
+      return () => mediaStreams.unblock(ids)
+    },
+  )
   handle('folder:choose', async () => {
     const selection = await dialog.showOpenDialog(window!, {
       properties: ['openDirectory', 'multiSelections'],
@@ -108,39 +126,45 @@ const setupIpc = (): void => {
     return selection.canceled ? [] : selection.filePaths
   })
   handle('scan:start', async (folders: unknown, similarity: unknown = 'balanced') => {
-    if (worker || trashBusy) throw new Error('Wait for the current operation to finish.')
-    const roots = await resolveFolders(folders)
-    if (!similarityLevels.includes(similarity as SimilarityLevel))
-      throw new Error('Invalid similarity level.')
-    folderPickerDirectory = getFolderPickerDirectory(folders as string[])
-    mediaFiles.clear()
-    result = null
-    await rm(sessionDirectory, { recursive: true, force: true })
-    await mkdir(sessionDirectory, { recursive: true })
-    const current = new Worker(join(__dirname, 'analysis-worker.js'), {
-      workerData: { folders: roots, thumbnailDirectory: sessionDirectory, similarity },
-    })
-    worker = current
-    let finished = false
-    current.on('message', (event: WorkerEvent) => {
-      if (worker !== current) return
-      if (event.type === 'complete') {
-        result = event.result
-        result.groups.forEach((group) =>
-          group.files.forEach((file) => mediaFiles.set(file.id, file)),
-        )
-      }
-      if (event.type !== 'progress') finished = true
-      emit(event)
-    })
-    current.on('error', (error) => {
-      finished = true
-      emit({ type: 'error', message: error.message })
-    })
-    current.on('exit', (code) => {
-      if (!finished) emit({ type: 'error', message: `The scan was interrupted (code ${code}).` })
-      if (worker === current) worker = null
-    })
+    if (worker || scanStarting || trashBusy || organizer.busy)
+      throw new Error('Wait for the current operation to finish.')
+    scanStarting = true
+    try {
+      const roots = await resolveFolders(folders)
+      if (!similarityLevels.includes(similarity as SimilarityLevel))
+        throw new Error('Invalid similarity level.')
+      folderPickerDirectory = getFolderPickerDirectory(folders as string[])
+      mediaFiles.clear()
+      result = null
+      await rm(sessionDirectory, { recursive: true, force: true })
+      await mkdir(sessionDirectory, { recursive: true })
+      const current = new Worker(join(__dirname, 'analysis-worker.js'), {
+        workerData: { folders: roots, thumbnailDirectory: sessionDirectory, similarity },
+      })
+      worker = current
+      let finished = false
+      current.on('message', (event: WorkerEvent) => {
+        if (worker !== current) return
+        if (event.type === 'complete') {
+          result = event.result
+          result.groups.forEach((group) =>
+            group.files.forEach((file) => mediaFiles.set(file.id, file)),
+          )
+        }
+        if (event.type !== 'progress') finished = true
+        emit(event)
+      })
+      current.on('error', (error) => {
+        finished = true
+        emit({ type: 'error', message: error.message })
+      })
+      current.on('exit', (code) => {
+        if (!finished) emit({ type: 'error', message: `The scan was interrupted (code ${code}).` })
+        if (worker === current) worker = null
+      })
+    } finally {
+      scanStarting = false
+    }
   })
   handle('scan:cancel', () => {
     worker?.postMessage('cancel')
@@ -151,7 +175,8 @@ const setupIpc = (): void => {
     shell.showItemInFolder(file.path)
   })
   handle('files:trash', async (ids: unknown): Promise<TrashResult> => {
-    if (worker || trashBusy || !result) throw new Error('Wait for the current operation to finish.')
+    if (worker || scanStarting || trashBusy || organizer.busy || !result)
+      throw new Error('Wait for the current operation to finish.')
     if (
       !Array.isArray(ids) ||
       !ids.length ||
@@ -320,6 +345,7 @@ app.on('window-all-closed', () => {
 })
 app.on('before-quit', () => {
   worker?.postMessage('cancel')
+  organizer.cancel()
 })
 app.on('will-quit', () => {
   if (sessionDirectory) void rm(sessionDirectory, { recursive: true, force: true })

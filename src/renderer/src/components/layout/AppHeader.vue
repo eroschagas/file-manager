@@ -6,6 +6,27 @@
         >LOCAL</span
       ></a
     >
+    <nav class="app-header__tabs" aria-label="Tools">
+      <button
+        :class="[
+          'app-header__tab',
+          { 'app-header__tab--active': props.activeTab === 'duplicates' },
+        ]"
+        :aria-current="props.activeTab === 'duplicates' ? 'page' : undefined"
+        :disabled="props.busy"
+        @click="emit('navigate', 'duplicates')"
+      >
+        Duplicates
+      </button>
+      <button
+        :class="['app-header__tab', { 'app-header__tab--active': props.activeTab === 'organizer' }]"
+        :aria-current="props.activeTab === 'organizer' ? 'page' : undefined"
+        :disabled="props.busy"
+        @click="emit('navigate', 'organizer')"
+      >
+        File organizer
+      </button>
+    </nav>
     <div class="app-header__privacy">
       <PhShieldCheck :size="17" /> Your files stay on your computer
     </div>
@@ -14,7 +35,11 @@
 
 <script setup lang="ts">
 import { PhStack, PhShieldCheck } from '@phosphor-icons/vue'
-const emit = defineEmits<{ home: [] }>()
+const props = defineProps({
+  activeTab: { type: String, default: 'duplicates' },
+  busy: { type: Boolean, default: false },
+})
+const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer'] }>()
 </script>
 
 <style lang="scss" scoped>
@@ -30,6 +55,36 @@ const emit = defineEmits<{ home: [] }>()
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
+  &__tabs {
+    display: flex;
+    height: 100%;
+    gap: 24px;
+  }
+  &__tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: 0 2px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    &:disabled {
+      cursor: default;
+      opacity: 0.6;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 3px;
+    }
+  }
+  &__tab--active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
   &__brand {
     display: flex;
     align-items: center;
@@ -73,6 +128,10 @@ const emit = defineEmits<{ home: [] }>()
 @media (max-width: 1050px) {
   .app-header {
     padding: 0 25px;
+    &__privacy {
+      font-size: 0;
+      gap: 0;
+    }
   }
 }
 </style>

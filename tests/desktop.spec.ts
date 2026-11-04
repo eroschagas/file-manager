@@ -1,6 +1,6 @@
 import { _electron as electron, expect, test } from '@playwright/test'
 import { execFile } from 'node:child_process'
-import { access, mkdir, mkdtemp, rm } from 'node:fs/promises'
+import { access, lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -316,5 +316,113 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
   } finally {
     await app.close()
     await rm(directory, { recursive: true, force: true })
+  }
+})
+
+test('desktop: organizer tabs, recursive preview, confirmation, collisions and repeat preview', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'file-manager-organizer-desktop-'))
+  await mkdir(join(root, 'nested'))
+  await writeFile(join(root, 'file.txt'), 'first')
+  await writeFile(join(root, 'nested', 'file.txt'), 'second')
+  await sharp({ create: { width: 16, height: 16, channels: 3, background: '#6650d8' } })
+    .withExif({ IFD2: { DateTimeOriginal: '2020:02:10 12:00:00' } })
+    .jpeg()
+    .toFile(join(root, 'photo.jpg'))
+  await promisify(execFile)(
+    ffmpegPath!,
+    [
+      '-v',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=c=black:s=16x16:d=0.1',
+      '-c:v',
+      'libx264',
+      '-metadata',
+      'creation_time=2018-07-20T12:00:00Z',
+      join(root, 'clip.mp4'),
+    ],
+    { windowsHide: true },
+  )
+  const info = await lstat(join(root, 'file.txt'))
+  const date = new Date(info.mtimeMs)
+  const month = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ][date.getMonth()]
+  const output = join(
+    root,
+    String(date.getFullYear()),
+    `${String(date.getMonth() + 1).padStart(2, '0')} - ${month}`,
+  )
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] =>
+        entry[1] !== undefined && entry[0] !== 'ELECTRON_RUN_AS_NODE',
+    ),
+  )
+  const app = await electron.launch({
+    ...(process.env.FILE_MANAGER_EXECUTABLE
+      ? { executablePath: process.env.FILE_MANAGER_EXECUTABLE, args: [] }
+      : { args: ['.'] }),
+    env: { ...env, ELECTRON_RENDERER_URL: '' },
+  })
+  try {
+    const page = await app.firstWindow()
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
+    await page.getByRole('button', { name: 'File organizer', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'A place for every file.' })).toBeVisible()
+    await app.evaluate(({ dialog }, folder) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] })
+    }, root)
+    await page.getByRole('button', { name: 'Browse', exact: true }).click()
+    await expect(page.getByLabel('Folder to organize')).toHaveValue(root)
+    await page.getByRole('button', { name: 'Preview organization', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Your files, organized by date' })).toBeVisible()
+    await expect(page.locator('.organization-summary__stats strong').first()).toHaveText('4')
+    await expect(page.locator('.organization-summary__folders')).toContainText('2020/02 - Feb')
+    await expect(page.locator('.organization-summary__folders')).toContainText('2018/07 - Jul')
+    expect(await readdir(root)).toEqual(['clip.mp4', 'file.txt', 'nested', 'photo.jpg'])
+    await page.screenshot({ path: '.test-output/organizer-preview.png', fullPage: true })
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
+    })
+    await page.getByRole('button', { name: 'Organize files', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Organize files', exact: true })).toBeVisible()
+    await access(join(root, 'file.txt'))
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
+    })
+    await page.getByRole('button', { name: 'Organize files', exact: true }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Organization complete', exact: true }),
+    ).toBeVisible()
+    await expect(page.locator('.organization-summary__stats strong').first()).toHaveText('4')
+    await access(join(root, '2020', '02 - Feb', 'photo.jpg'))
+    await access(join(root, '2018', '07 - Jul', 'clip.mp4'))
+    expect(await readFile(join(output, 'file.txt'), 'utf8')).toBe('first')
+    expect(await readFile(join(output, 'file (2).txt'), 'utf8')).toBe('second')
+    await page.getByRole('button', { name: 'Preview again', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Your files, organized by date' })).toBeVisible()
+    await expect(page.locator('.organization-summary__stats strong').first()).toHaveText('0')
+    await page.getByRole('button', { name: 'Duplicates', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
+    expect(errors).toEqual([])
+  } finally {
+    await app.close()
+    await rm(root, { recursive: true, force: true })
   }
 })

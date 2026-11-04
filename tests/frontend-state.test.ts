@@ -44,7 +44,10 @@ const result = (): ScanResult => ({
   elapsedMs: 100,
 })
 
-class FakeDesktop implements DesktopApi {
+class FakeDesktop implements Pick<
+  DesktopApi,
+  'chooseFolder' | 'startScan' | 'cancelScan' | 'trashFiles' | 'revealFile' | 'onScanEvent'
+> {
   listener?: (event: WorkerEvent) => void
   requestedScan?: { paths: string[]; similarity: SimilarityLevel }
   trashResult: TrashResult = { deletedIds: [], errors: [] }

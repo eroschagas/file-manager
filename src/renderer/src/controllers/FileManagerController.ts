@@ -19,7 +19,14 @@ export class FileManagerController {
   })
   private unsubscribe?: () => void
 
-  constructor(private readonly desktop: DesktopApi | undefined) {}
+  constructor(
+    private readonly desktop:
+      | Pick<
+          DesktopApi,
+          'chooseFolder' | 'startScan' | 'cancelScan' | 'trashFiles' | 'revealFile' | 'onScanEvent'
+        >
+      | undefined,
+  ) {}
 
   initialize = (): void => {
     this.unsubscribe = this.desktop?.onScanEvent(this.onScanEvent)
@@ -35,7 +42,10 @@ export class FileManagerController {
     this.unsubscribe = undefined
   }
 
-  private get api(): DesktopApi {
+  private get api(): Pick<
+    DesktopApi,
+    'chooseFolder' | 'startScan' | 'cancelScan' | 'trashFiles' | 'revealFile' | 'onScanEvent'
+  > {
     if (!this.desktop)
       throw new Error(
         'Open the app in Electron using npm run dev to access folders on your computer.',

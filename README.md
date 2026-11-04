@@ -1,6 +1,6 @@
 # File Manager
 
-A local desktop app built with Vue 3, TypeScript, and Electron to find duplicate or visually similar photos and videos, including versions with different resolutions and compression levels.
+A local desktop app built with Vue 3, TypeScript, and Electron to find duplicate or visually similar photos and videos and organize files into date folders.
 
 ## Development
 
@@ -13,6 +13,8 @@ npm run dev
 
 This starts Vite and opens the Electron window. Vue changes appear through hot reload. Press **Ctrl + Shift + I** to open DevTools during development. Opening the Vite URL in a regular browser does not provide access to desktop file operations.
 
+The header offers **Duplicates** and **File organizer** tabs. In **Duplicates**:
+
 1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
 2. Choose **Similarity**: Strict, Balanced (default), or Flexible. Flexible finds more candidates and requires careful review. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
 3. Select a group to compare versions, resolutions, and sizes. Cards use independent thumbnails. Click an image to enlarge it or a video thumbnail to play it when Chromium supports the codec. Selecting a file for the Recycle Bin does not open the original.
@@ -23,6 +25,20 @@ The header stays visible. The group list and file comparison have independent sc
 During the current app session, the folder picker remembers the parent of the last selected folder. For multiple folders, it opens their nearest common ancestor; across different drives, it uses the parent of the last folder. Returning from results clears the inputs and leaves one empty field while preserving the picker location.
 
 Scanning does not modify files. Unreadable, damaged, or unsupported files are reported at the end. A failed Recycle Bin operation never falls back to permanent deletion.
+
+## File organizer
+
+1. Open **File organizer**, enter a folder path or click **Browse**. The picker remembers the parent of its previous selection during the session.
+2. Click **Preview organization**. The app reads all regular files recursively, including non-media files, and displays their destination folders without modifying the folder.
+3. Click **Organize files** and confirm the native dialog. Files move into `YYYY/MM - Mon` folders inside the selected folder, for example `2026/11 - Nov/photo.jpg`. Months use `01 - Jan` through `12 - Dec`. A new preview of the original root also migrates files from older month folders into this format; pre-existing empty folders remain untouched.
+
+Photos use capture metadata (EXIF/XMP, prioritizing `DateTimeOriginal`); videos use recording metadata from the container or video track, prioritizing camera-specific recording dates over generic `creation_time`. The year and month recorded in the metadata are preserved without shifting them to the computer's timezone. Missing, invalid, unsupported, or unreadable metadata falls back to the file's modification timestamp (`mtimeMs`), interpreted in the computer's local timezone. Other files also use their modification date. File-system creation time is never used to choose the destination. If neither date is valid, files go into **Unknown Date**.
+
+Only destination folders needed for files are created. Newly created folders that remain empty after a failure or cancellation are removed; pre-existing folders, including emptied source folders, are left untouched. Already organized files stay in place. Repeated names receive suffixes such as `photo (2).jpg`; existing files are never overwritten, including conflicts that appear after the preview.
+
+Source identity, size, creation time, and modification time are checked again before moving. Junctions and symbolic links are skipped. Failures are reported with their file paths and other files continue. Cancellation stops between files and retains completed moves. Moves preserve file timestamps and embedded metadata. Selecting the original root again also corrects files organized into the wrong date folders by an earlier version. A successful move clears the previous duplicate scan because its paths may have changed.
+
+Tabs are disabled during active operations. All operations run locally; no upload or external service is involved.
 
 ## How comparison works
 
@@ -57,13 +73,13 @@ npm run dist:win
 
 ## Structure
 
-- `src/main`: window, local operations, scanning, and comparison.
+- `src/main`: window, local operations, scanning, and comparison; `organizer` contains `FileOrganizer`, `MediaDateReader`, `SafeFileMover`, and `OrganizerIpc`.
 - `src/preload`: bridge exposing specific operations to the interface.
 - `src/renderer/src/App.vue`: application shell, screen composition, and lifecycle wiring.
-- `src/renderer/src/views`: folder selection, scan progress, and review screens.
-- `src/renderer/src/components`: reusable SFCs organized into `layout`, `setup`, `review`, and `ui`; `MediaCard.vue` owns media playback and its preview lifecycle.
-- `src/renderer/src/models`: `FolderSelection`, `ScanSession`, and `ReviewSession` classes own reactive state and domain operations.
-- `src/renderer/src/controllers`: `FileManagerController` coordinates the models, navigation, messages, and the injected desktop API.
+- `src/renderer/src/views`: folder selection, scan progress, review, and organizer screens.
+- `src/renderer/src/components`: reusable SFCs organized into `layout`, `setup`, `review`, `organizer`, and `ui`; `MediaCard.vue` owns media playback and its preview lifecycle.
+- `src/renderer/src/models`: `FolderSelection`, `ScanSession`, `ReviewSession`, and `OrganizerSession` classes own reactive state and domain operations.
+- `src/renderer/src/controllers`: `FileManagerController` and `OrganizerController` coordinate models, navigation, messages, and the injected desktop API.
 - `src/renderer/src/styles`: global tokens and reset only; each component owns its scoped SCSS, including its responsive rules.
 - `src/shared`: TypeScript contracts between processes.
 - `tests`: perceptual comparison and real scanning with generated photos and videos.

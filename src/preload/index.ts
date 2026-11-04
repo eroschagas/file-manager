@@ -1,7 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DesktopApi, WorkerEvent } from '../shared/types'
+import type { OrganizationProgress } from '../shared/organizer'
 
 const api: DesktopApi = {
+  chooseOrganizerFolder: () => ipcRenderer.invoke('organizer:choose'),
+  previewOrganization: (folder) => ipcRenderer.invoke('organizer:preview', folder),
+  organizeFiles: (id) => ipcRenderer.invoke('organizer:run', id),
+  cancelOrganization: () => ipcRenderer.invoke('organizer:cancel'),
+  onOrganizationProgress: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: OrganizationProgress): void =>
+      callback(progress)
+    ipcRenderer.on('organizer:progress', listener)
+    return () => ipcRenderer.removeListener('organizer:progress', listener)
+  },
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
   startScan: (paths, similarity) => ipcRenderer.invoke('scan:start', paths, similarity),
   cancelScan: () => ipcRenderer.invoke('scan:cancel'),
