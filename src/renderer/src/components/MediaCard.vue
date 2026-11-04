@@ -1,5 +1,8 @@
 <template>
-  <article :class="['media-card', { 'media-card--selected': selected }]">
+  <article
+    :class="['media-card', { 'media-card--selected': selected, 'media-card--disabled': disabled }]"
+    @click="toggleSelection"
+  >
     <div class="media-card__preview">
       <video
         v-if="file.kind === 'video' && videoRequested && !suspendPreview"
@@ -10,21 +13,23 @@
         autoplay
         preload="metadata"
         @error="videoFailed = true"
+        @click.stop
       />
-      <button
-        v-else
-        class="media-card__image-button"
-        :aria-label="file.kind === 'video' ? 'Play video' : 'Enlarge image'"
-        :disabled="suspendPreview"
-        @click="openPreview"
-      >
+      <template v-else>
         <img :src="thumbnailUrl(file.id)" :alt="file.name" loading="lazy" />
-        <span class="media-card__zoom"
-          ><PhPlay v-if="file.kind === 'video'" :size="20" /><PhMagnifyingGlassPlus
+        <button
+          type="button"
+          class="media-card__zoom"
+          :aria-label="file.kind === 'video' ? 'Play video' : 'Enlarge image'"
+          :disabled="suspendPreview"
+          @click.stop="openPreview"
+        >
+          <PhPlay v-if="file.kind === 'video'" :size="20" /><PhMagnifyingGlassPlus
             v-else
             :size="20"
-        /></span>
-      </button>
+          />
+        </button>
+      </template>
       <span v-if="preferred" class="media-card__badge"
         ><PhSparkle :size="13" weight="fill" /> Highest resolution in this group</span
       >
@@ -36,7 +41,7 @@
           variant="icon"
           title="Show in folder"
           aria-label="Show in folder"
-          @click="emit('reveal', file.id)"
+          @click.stop="emit('reveal', file.id)"
         >
           <PhFolderOpen :size="19" />
         </UiButton>
@@ -50,13 +55,11 @@
       <p v-if="videoFailed" class="media-card__warning">
         This format cannot be played here. Open it from its folder to review it.
       </p>
-      <label :class="['media-card__selection', { 'media-card__selection--disabled': disabled }]">
-        <input
-          type="checkbox"
-          :checked="selected"
-          :disabled="disabled"
-          @change="emit('toggle', file.id)"
-        />
+      <label
+        :class="['media-card__selection', { 'media-card__selection--disabled': disabled }]"
+        @click.stop
+      >
+        <input type="checkbox" :checked="selected" :disabled="disabled" @change="toggleSelection" />
         <span>{{ selected ? 'Selected for Recycle Bin' : 'Select for Recycle Bin' }}</span
         ><PhTrash :size="16" />
       </label>
@@ -93,6 +96,9 @@ const emit = defineEmits<{
 const videoFailed = ref(false)
 const videoRequested = ref(false)
 const videoElement = ref<HTMLVideoElement | null>(null)
+const toggleSelection = (): void => {
+  if (!props.disabled) emit('toggle', props.file.id)
+}
 const releaseVideo = (): void => {
   const video = videoElement.value
   if (video) {
@@ -125,6 +131,10 @@ onBeforeUnmount(releaseVideo)
   border: 1px solid var(--border);
   border-radius: 14px;
   background: white;
+  cursor: pointer;
+  &--disabled {
+    cursor: default;
+  }
   transition:
     border-color 150ms,
     box-shadow 150ms;
@@ -146,14 +156,6 @@ onBeforeUnmount(releaseVideo)
       object-fit: contain;
     }
   }
-  &__image-button {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    padding: 0;
-    background: transparent;
-    cursor: zoom-in;
-  }
   &__zoom {
     position: absolute;
     bottom: 12px;
@@ -161,6 +163,8 @@ onBeforeUnmount(releaseVideo)
     display: grid;
     place-items: center;
     padding: 7px;
+    border: 0;
+    cursor: zoom-in;
     border-radius: 8px;
     color: white;
     background: #18202cb3;
