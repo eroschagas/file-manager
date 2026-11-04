@@ -1,0 +1,18 @@
+:root {
+  --primary: #6650d8;
+  --primary-dark: #5140b3;
+  --text: #242735;
+  --muted: #797d8b;
+  --border: #e5e7ee;
+  --surface: #f5f6f9;
+  --danger: #cc4b55;
+  font-family:
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-synthesis: none;
+  color: var(--text);
+  background: #f8f9fb;
+  -webkit-font-smoothing: antialiased;
+}

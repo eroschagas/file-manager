@@ -1,0 +1,129 @@
+<template>
+  <section class="group-detail">
+    <div class="group-detail__heading">
+      <div>
+        <UiEyebrow>
+          {{ group.match === 'exact' ? 'EXACT DUPLICATES' : 'SIMILAR VISUAL CONTENT' }}
+        </UiEyebrow>
+        <h2>Compare before choosing</h2>
+        <p>
+          {{ group.files.length }} versions, largest to smallest · select the files to move to the
+          Recycle Bin.
+        </p>
+      </div>
+      <span class="group-detail__type"
+        ><PhImage v-if="group.kind === 'image'" :size="19" /><PhFilmStrip v-else :size="19"
+      /></span>
+    </div>
+    <div class="group-detail__hint">
+      <PhInfo :size="19" />
+      <p>
+        {{
+          group.kind === 'video'
+            ? 'The comparison uses frames from five points in the video. Also check the audio and the full content.'
+            : 'Higher resolution is a reference, but does not guarantee better quality. Check the details before deleting.'
+        }}
+      </p>
+    </div>
+    <div class="group-detail__cards">
+      <MediaCard
+        v-for="file in group.files"
+        :key="file.id"
+        :file="file"
+        :suspend-preview="deleting"
+        :preferred="file.id === highestResolutionId && group.match !== 'exact'"
+        :selected="selectedIds.has(file.id)"
+        :disabled="deleting"
+        @toggle="emit('toggle', $event)"
+        @reveal="emit('reveal', $event)"
+        @preview="emit('preview', $event)"
+      />
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { PhImage, PhFilmStrip, PhInfo } from '@phosphor-icons/vue'
+import MediaCard from '../MediaCard.vue'
+import UiEyebrow from '../ui/UiEyebrow.vue'
+import { type PropType } from 'vue'
+import type { MediaFile, SimilarGroup } from '../../../../shared/types'
+const props = defineProps({
+  group: { type: Object as PropType<SimilarGroup>, required: true },
+  selectedIds: { type: Object as PropType<Set<string>>, required: true },
+  highestResolutionId: { type: String, default: undefined },
+  deleting: { type: Boolean, default: false },
+})
+const emit = defineEmits<{
+  toggle: [id: string]
+  reveal: [id: string]
+  preview: [file: MediaFile]
+}>()
+</script>
+
+<style lang="scss" scoped>
+.group-detail {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-right: 6px;
+  min-width: 0;
+  &__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 5px 0 15px;
+    h2 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      margin-top: 8px;
+    }
+    p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 7px;
+    }
+  }
+  &__type {
+    width: 37px;
+    height: 37px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: white;
+  }
+  &__hint {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    padding: 11px 13px;
+    border: 1px solid #e4e0f4;
+    border-radius: 7px;
+    color: #8275a7;
+    background: #f3f0fc;
+    margin-bottom: 18px;
+    svg {
+      flex-shrink: 0;
+    }
+    p {
+      font-size: 11px;
+      line-height: 1.6;
+    }
+  }
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+  }
+}
+@media (min-width: 1700px) {
+  .group-detail__cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+</style>

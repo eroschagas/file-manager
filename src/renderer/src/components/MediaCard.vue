@@ -32,14 +32,14 @@
     <div class="media-card__body">
       <div class="media-card__title">
         <h3 :title="file.name">{{ file.name }}</h3>
-        <button
-          class="icon-button"
+        <UiButton
+          variant="icon"
           title="Show in folder"
           aria-label="Show in folder"
           @click="emit('reveal', file.id)"
         >
           <PhFolderOpen :size="19" />
-        </button>
+        </UiButton>
       </div>
       <p class="media-card__path" :title="file.path">{{ file.relativePath }}</p>
       <div class="media-card__metadata">
@@ -67,12 +67,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch, type PropType } from 'vue'
 import {
-  PhFolderOpen,
-  PhMagnifyingGlassPlus,
   PhPlay,
+  PhMagnifyingGlassPlus,
   PhSparkle,
+  PhFolderOpen,
   PhTrash,
 } from '@phosphor-icons/vue'
+import UiButton from './ui/UiButton.vue'
+
 import type { MediaFile } from '../../../shared/types'
 import { formatBytes, formatDuration, thumbnailUrl } from '../format'
 
@@ -117,7 +119,7 @@ watch(
 onBeforeUnmount(releaseVideo)
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .media-card {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -246,6 +248,12 @@ onBeforeUnmount(releaseVideo)
   }
   &--selected &__selection {
     color: var(--danger);
+  }
+}
+
+@media (max-width: 1050px) {
+  .media-card__preview {
+    height: 190px;
   }
 }
 </style>

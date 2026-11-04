@@ -59,11 +59,18 @@ npm run dist:win
 
 - `src/main`: window, local operations, scanning, and comparison.
 - `src/preload`: bridge exposing specific operations to the interface.
-- `src/renderer/src`: Vue components and SCSS styles.
+- `src/renderer/src/App.vue`: application shell, screen composition, and lifecycle wiring.
+- `src/renderer/src/views`: folder selection, scan progress, and review screens.
+- `src/renderer/src/components`: reusable SFCs organized into `layout`, `setup`, `review`, and `ui`; `MediaCard.vue` owns media playback and its preview lifecycle.
+- `src/renderer/src/models`: `FolderSelection`, `ScanSession`, and `ReviewSession` classes own reactive state and domain operations.
+- `src/renderer/src/controllers`: `FileManagerController` coordinates the models, navigation, messages, and the injected desktop API.
+- `src/renderer/src/styles`: global tokens and reset only; each component owns its scoped SCSS, including its responsive rules.
 - `src/shared`: TypeScript contracts between processes.
 - `tests`: perceptual comparison and real scanning with generated photos and videos.
 
 The renderer uses context isolation and sandboxing without direct Node access. Preview and Recycle Bin operations are restricted to files from the current scan. File size and modification time are checked before moving files, and a native confirmation dialog is required.
+
+The front end uses composition between TypeScript classes and Vue's Composition API. Models keep reactive state internally so class methods remain reactive without proxying the class instances. Views render models and emit user actions; only the controller calls the desktop bridge. Its subscription is disposed when the app component unmounts. DOM-specific behavior, such as dialogs and video cleanup, stays inside the owning SFC.
 
 ## Distribution and licenses
 
