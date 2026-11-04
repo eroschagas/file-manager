@@ -6,8 +6,9 @@ import { Readable } from 'node:stream'
 import { pathToFileURL } from 'node:url'
 import { Worker } from 'node:worker_threads'
 import type { MediaFile, ScanResult, TrashResult, WorkerEvent } from '../shared/types'
+import { similarityLevels, type SimilarityLevel } from '../shared/types'
 import { MediaStreams, trashErrorMessage } from './media-streams'
-import { isInsideFolder, resolveFolders } from './folders'
+import { getFolderPickerDirectory, isInsideFolder, resolveFolders } from './folders'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -21,6 +22,7 @@ let worker: Worker | null = null
 let result: ScanResult | null = null
 let trashBusy = false
 let sessionDirectory = ''
+let folderPickerDirectory: string | undefined
 const mediaFiles = new Map<string, MediaFile>()
 const mediaStreams = new MediaStreams()
 
@@ -98,18 +100,25 @@ const setupIpc = (): void => {
     const selection = await dialog.showOpenDialog(window!, {
       properties: ['openDirectory', 'multiSelections'],
       title: 'Escolha as pastas para analisar',
+      defaultPath: folderPickerDirectory,
     })
+    if (!selection.canceled && selection.filePaths.length) {
+      folderPickerDirectory = getFolderPickerDirectory(selection.filePaths)
+    }
     return selection.canceled ? [] : selection.filePaths
   })
-  handle('scan:start', async (folders: unknown) => {
+  handle('scan:start', async (folders: unknown, similarity: unknown = 'balanced') => {
     if (worker || trashBusy) throw new Error('Aguarde a operação atual terminar.')
     const roots = await resolveFolders(folders)
+    if (!similarityLevels.includes(similarity as SimilarityLevel))
+      throw new Error('Nível de similaridade inválido.')
+    folderPickerDirectory = getFolderPickerDirectory(folders as string[])
     mediaFiles.clear()
     result = null
     await rm(sessionDirectory, { recursive: true, force: true })
     await mkdir(sessionDirectory, { recursive: true })
     const current = new Worker(join(__dirname, 'analysis-worker.js'), {
-      workerData: { folders: roots, thumbnailDirectory: sessionDirectory },
+      workerData: { folders: roots, thumbnailDirectory: sessionDirectory, similarity },
     })
     worker = current
     let finished = false

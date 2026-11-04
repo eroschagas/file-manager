@@ -80,6 +80,15 @@
             >As subpastas também serão analisadas automaticamente.</span
           >
         </div>
+        <div class="folder-form__similarity">
+          <label for="similarityLevel">Similaridade</label>
+          <select id="similarityLevel" v-model="similarityLevel" :disabled="starting">
+            <option value="strict">Rigoroso — arquivos quase idênticos</option>
+            <option value="balanced">Equilibrado — diferenças moderadas</option>
+            <option value="flexible">Flexível — arquivos menos parecidos</option>
+          </select>
+          <p>{{ similarityDescriptions[similarityLevel] }}</p>
+        </div>
         <div class="folder-form__footer">
           <span
             ><PhImage :size="16" /> Fotos <span class="separator">/</span>
@@ -243,7 +252,10 @@
                 }}
               </div>
               <h2>Compare antes de escolher</h2>
-              <p>{{ activeGroup.files.length }} versões · mantenha pelo menos um arquivo.</p>
+              <p>
+                {{ activeGroup.files.length }} versões, do maior para o menor · mantenha pelo menos
+                um arquivo.
+              </p>
             </div>
             <span class="group-detail__type"
               ><PhImage v-if="activeGroup.kind === 'image'" :size="19" /><PhFilmStrip
@@ -263,14 +275,17 @@
           </div>
           <div class="group-detail__cards">
             <MediaCard
-              v-for="(file, index) in activeGroup.files"
+              v-for="file in activeGroup.files"
               :key="file.id"
               :file="file"
               :suspend-preview="deleting"
-              :preferred="index === 0 && activeGroup.match !== 'exact'"
+              :preferred="file.id === highestResolutionId && activeGroup.match !== 'exact'"
               :selected="selectedIds.has(file.id)"
               :disabled="
-                deleting || (!selectedIds.has(file.id) && remainingInGroup(activeGroup) <= 1)
+                deleting ||
+                (activeGroup.files.length > 2 &&
+                  !selectedIds.has(file.id) &&
+                  remainingInGroup(activeGroup) <= 1)
               "
               @toggle="toggleSelection"
               @reveal="revealFile"
@@ -381,6 +396,7 @@ import type {
   ScanProgress,
   ScanResult,
   SimilarGroup,
+  SimilarityLevel,
 } from '../../shared/types'
 import MediaCard from './components/MediaCard.vue'
 import { formatBytes, formatDuration, thumbnailUrl } from './format'
@@ -388,6 +404,13 @@ import { formatBytes, formatDuration, thumbnailUrl } from './format'
 const screen = ref<'setup' | 'scanning' | 'results'>('setup')
 const folderPaths = ref([''])
 const selectedFolders = computed(() => folderPaths.value.map((path) => path.trim()).filter(Boolean))
+const similarityLevel = ref<SimilarityLevel>('balanced')
+const similarityDescriptions: Record<SimilarityLevel, string> = {
+  strict: 'Prioriza cópias com poucas diferenças visuais.',
+  balanced: 'Aceita diferenças moderadas de qualidade e aparência.',
+  flexible:
+    'Encontra mais candidatos, mas pode agrupar fotos diferentes. Revise cada grupo antes de excluir.',
+}
 const starting = ref(false)
 const cancelling = ref(false)
 const deleting = ref(false)
@@ -420,6 +443,12 @@ const filteredGroups = computed(
 const activeGroup = computed(
   () =>
     filteredGroups.value.find((group) => group.id === activeId.value) ?? filteredGroups.value[0],
+)
+const highestResolutionId = computed(
+  () =>
+    activeGroup.value?.files.reduce((best, file) =>
+      file.width * file.height > best.width * best.height ? file : best,
+    ).id,
 )
 const groupedCount = computed(
   () => result.value?.groups.reduce((sum, group) => sum + group.files.length, 0) ?? 0,
@@ -480,7 +509,7 @@ const startScan = async (): Promise<void> => {
   removedCount.value = 0
   filter.value = 'all'
   try {
-    await window.desktop.startScan(selectedFolders.value)
+    await window.desktop.startScan(selectedFolders.value, similarityLevel.value)
   } catch (error) {
     screen.value = 'setup'
     showMessage(errorMessage(error), true)
@@ -505,7 +534,9 @@ const toggleSelection = (id: string): void => {
   if (next.has(id)) next.delete(id)
   else {
     const group = result.value?.groups.find((entry) => entry.files.some((file) => file.id === id))
-    if (!group || remainingInGroup(group) <= 1) return
+    if (!group) return
+    if (group.files.length === 2) group.files.forEach((file) => next.delete(file.id))
+    else if (remainingInGroup(group) <= 1) return
     next.add(id)
   }
   selectedIds.value = next
@@ -553,6 +584,7 @@ const revealFile = async (id: string): Promise<void> => {
 const goHome = (): void => {
   if (screen.value === 'scanning' || deleting.value || starting.value) return
   screen.value = 'setup'
+  folderPaths.value = ['']
   selectedIds.value = new Set()
   message.value = ''
 }
@@ -576,6 +608,9 @@ const unsubscribe = window.desktop?.onScanEvent((event) => {
   if (event.type === 'progress') progress.value = event.progress
   else if (event.type === 'complete') {
     result.value = event.result
+    selectedIds.value = new Set(
+      event.result.groups.map((group) => group.files[group.files.length - 1].id),
+    )
     activeId.value = event.result.groups[0]?.id ?? ''
     screen.value = 'results'
     cancelling.value = false

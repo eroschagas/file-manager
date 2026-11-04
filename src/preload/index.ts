@@ -3,7 +3,7 @@ import type { DesktopApi, WorkerEvent } from '../shared/types'
 
 const api: DesktopApi = {
   chooseFolder: () => ipcRenderer.invoke('folder:choose'),
-  startScan: (path) => ipcRenderer.invoke('scan:start', path),
+  startScan: (paths, similarity) => ipcRenderer.invoke('scan:start', paths, similarity),
   cancelScan: () => ipcRenderer.invoke('scan:cancel'),
   trashFiles: (ids) => ipcRenderer.invoke('files:trash', ids),
   revealFile: (id) => ipcRenderer.invoke('file:reveal', id),

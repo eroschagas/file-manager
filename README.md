@@ -14,16 +14,19 @@ npm run dev
 O comando inicia o Vite e abre a janela do Electron. Alterações na interface Vue aparecem com hot reload. Use **Ctrl + Shift + I** para abrir o DevTools durante o desenvolvimento. Abrir apenas o endereço do Vite no navegador não disponibiliza as operações de arquivos.
 
 1. Digite o caminho completo da pasta ou use **Procurar pasta**, que permite selecionar várias pastas. Use **Adicionar pasta** para incluir mais caminhos manualmente e o botão de remover para retirar uma entrada.
-2. Clique em **Analisar arquivos**. Os arquivos de todas as pastas são comparados juntos. A busca inclui todas as subpastas reais; links simbólicos e junções não são seguidos. Pastas repetidas ou contidas em outra selecionada são analisadas uma única vez. Campos vazios são ignorados; caminhos inválidos impedem o início da análise.
+
+   Durante a execução do aplicativo, o seletor lembra a pasta anterior à última seleção. Para várias pastas, abre na ancestral comum mais próxima; se estiverem em unidades diferentes, usa a pasta anterior à última da lista. Ao voltar dos resultados, os campos são limpos e resta um único input vazio, mantendo a referência do seletor.
+
+2. Escolha a **Similaridade**: Rigoroso, Equilibrado (padrão) ou Flexível. O modo Flexível encontra mais candidatos e exige mais cuidado na revisão. Clique em **Analisar arquivos**. Os arquivos de todas as pastas são comparados juntos. A busca inclui todas as subpastas reais; links simbólicos e junções não são seguidos. Pastas repetidas ou contidas em outra selecionada são analisadas uma única vez. Campos vazios são ignorados; caminhos inválidos impedem o início da análise.
 3. Selecione um grupo para comparar as versões, as resoluções e os tamanhos. Os cards usam miniaturas independentes dos originais. Clique na imagem para ampliar ou na miniatura do vídeo para reproduzir, quando o codec for suportado pelo Chromium. Marcar um arquivo para a lixeira não abre o original.
-4. Marque manualmente os arquivos que deseja enviar à lixeira e confirme no diálogo do sistema. É obrigatório manter pelo menos uma cópia disponível em cada grupo.
+4. Os arquivos aparecem do maior para o menor em bytes, com o menor pré-selecionado em cada grupo. Revise a seleção antes de confirmar no diálogo do sistema. Em grupos de dois arquivos, marcar o outro troca a seleção automaticamente. É obrigatório manter pelo menos uma cópia disponível em cada grupo.
 
 A análise não altera os arquivos. Arquivos sem permissão, danificados ou sem suporte de decodificação são informados ao final. Não há exclusão permanente como alternativa quando a lixeira falha.
 
 ## Como a comparação funciona
 
 - SHA-256 encontra cópias binariamente idênticas entre os arquivos de mídia decodificados com sucesso.
-- Fotos são normalizadas por orientação, convertidas para tons de cinza e comparadas com um hash perceptual DCT de 63 bits. A distância máxima é de sete bits, com verificação de proporção.
+- Fotos são normalizadas por orientação, convertidas para tons de cinza e comparadas com um hash perceptual DCT de 63 bits. A distância máxima é de quatro bits no modo Rigoroso, sete no Equilibrado e doze no Flexível, com verificação de proporção. O mesmo limite é aplicado aos frames dos vídeos.
 - Vídeos são inspecionados pelo FFprobe. O FFmpeg extrai frames em 10%, 30%, 50%, 70% e 90% da duração. A comparação exige duração próxima, ao menos quatro frames semelhantes e distância média dentro do limite.
 - Um índice por segmentos da assinatura reduz as comparações desnecessárias. Cada grupo compara suas versões diretamente com uma referência, evitando encadear arquivos progressivamente diferentes.
 - Imagens ou frames praticamente uniformes participam somente da comparação exata para reduzir falsos positivos.

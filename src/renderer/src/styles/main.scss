@@ -264,6 +264,29 @@ button {
   }
 }
 .folder-form {
+  &__similarity {
+    margin-top: 20px;
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+    select:focus-visible {
+      outline: 3px solid #b7a9ff;
+      outline-offset: 2px;
+    }
+    p {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+  }
   &__entry + &__entry {
     margin-top: 14px;
   }

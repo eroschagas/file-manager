@@ -1,4 +1,6 @@
 export type MediaKind = 'image' | 'video'
+export const similarityLevels = ['strict', 'balanced', 'flexible'] as const
+export type SimilarityLevel = (typeof similarityLevels)[number]
 
 export interface MediaFile {
   id: string
@@ -53,7 +55,7 @@ export type WorkerEvent =
 
 export interface DesktopApi {
   chooseFolder: () => Promise<string[]>
-  startScan: (paths: string[]) => Promise<void>
+  startScan: (paths: string[], similarity: SimilarityLevel) => Promise<void>
   cancelScan: () => Promise<void>
   trashFiles: (ids: string[]) => Promise<TrashResult>
   revealFile: (id: string) => Promise<void>

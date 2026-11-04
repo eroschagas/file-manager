@@ -1,6 +1,6 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { scanFolder } from './scanner'
-import type { WorkerEvent } from '../shared/types'
+import type { SimilarityLevel, WorkerEvent } from '../shared/types'
 
 const controller = new AbortController()
 const send = (event: WorkerEvent): void => {
@@ -9,12 +9,17 @@ const send = (event: WorkerEvent): void => {
 parentPort?.on('message', (message) => {
   if (message === 'cancel') controller.abort()
 })
-const { folders, thumbnailDirectory } = workerData as {
+const { folders, thumbnailDirectory, similarity } = workerData as {
   folders: string[]
   thumbnailDirectory: string
+  similarity: SimilarityLevel
 }
-scanFolder(folders, thumbnailDirectory, controller.signal, (progress) =>
-  send({ type: 'progress', progress }),
+scanFolder(
+  folders,
+  thumbnailDirectory,
+  controller.signal,
+  (progress) => send({ type: 'progress', progress }),
+  similarity,
 )
   .then((result) => send({ type: 'complete', result }))
   .catch((error: unknown) => {

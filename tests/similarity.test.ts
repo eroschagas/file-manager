@@ -97,3 +97,28 @@ test('solid frames are excluded from approximate matching', () => {
   assert.equal(perceptualHash(pixels), perceptualHash(pixels))
   assert.throws(() => perceptualHash(new Uint8Array(10)))
 })
+
+test('flexible matching finds candidates beyond balanced and strict thresholds', () => {
+  const first = file('a', { hashes: ['0'] })
+  const second = file('b', { hashes: ['3ff'] })
+  assert.equal(areSimilar(first, second, 'strict'), false)
+  assert.equal(areSimilar(first, second, 'balanced'), false)
+  assert.equal(areSimilar(first, second, 'flexible'), true)
+  assert.equal(groupSimilarFiles([first, second], 'balanced').length, 0)
+  assert.equal(groupSimilarFiles([first, second], 'flexible').length, 1)
+  const moderatelyDifferent = file('c', { hashes: ['3f'] })
+  assert.equal(areSimilar(first, moderatelyDifferent, 'strict'), false)
+  assert.equal(areSimilar(first, moderatelyDifferent, 'balanced'), true)
+})
+
+test('orders members by bytes even when the smaller file has higher resolution', () => {
+  const groups = groupSimilarFiles([
+    file('small', { size: 100, width: 1000, height: 1000 }),
+    file('large', { size: 300, width: 200, height: 200 }),
+    file('medium', { size: 200, width: 400, height: 400 }),
+  ])
+  assert.deepEqual(
+    groups[0].files.map((entry) => entry.id),
+    ['large', 'medium', 'small'],
+  )
+})

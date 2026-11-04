@@ -5,7 +5,13 @@ import { basename, extname, join, relative } from 'node:path'
 import { spawn } from 'node:child_process'
 import sharp from 'sharp'
 import ffmpegPath from 'ffmpeg-static'
-import type { MediaFile, MediaKind, ScanProgress, ScanResult } from '../shared/types'
+import type {
+  MediaFile,
+  MediaKind,
+  ScanProgress,
+  ScanResult,
+  SimilarityLevel,
+} from '../shared/types'
 import { groupSimilarFiles, hasVisualDetail, perceptualHash } from './similarity'
 import { resolveFolders } from './folders'
 
@@ -90,6 +96,7 @@ export const scanFolder = async (
   thumbnailDirectory: string,
   signal: AbortSignal,
   onProgress: (progress: ScanProgress) => void,
+  similarity: SimilarityLevel = 'balanced',
 ): Promise<ScanResult> => {
   const started = Date.now()
   const roots = await resolveFolders(Array.isArray(folder) ? folder : [folder])
@@ -263,7 +270,7 @@ export const scanFolder = async (
   progress.phase = 'grouping'
   progress.currentFile = ''
   report(true)
-  const groups = groupSimilarFiles(files)
+  const groups = groupSimilarFiles(files, similarity)
   signal.throwIfAborted()
   return {
     roots,

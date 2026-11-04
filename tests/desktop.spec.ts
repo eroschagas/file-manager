@@ -91,6 +91,13 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     })
     page.on('pageerror', (error) => errors.push(error.message))
     await expect(page.getByRole('heading', { name: 'Por onde vamos começar?' })).toBeVisible()
+    await expect(page.getByLabel('Similaridade', { exact: true })).toHaveValue('balanced')
+    await page.getByLabel('Similaridade', { exact: true }).selectOption('flexible')
+    await expect(
+      page.getByText(
+        'Encontra mais candidatos, mas pode agrupar fotos diferentes. Revise cada grupo antes de excluir.',
+      ),
+    ).toBeVisible()
     await page.screenshot({ path: '.test-output/setup.png', fullPage: true })
     await page.getByLabel('Pasta para análise').fill(join(directory, 'nonexistent'))
     await page.getByRole('button', { name: 'Analisar arquivos' }).click()
@@ -112,7 +119,15 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await page.getByRole('button', { name: 'Analisar arquivos' }).click()
     await expect(page.getByText('Análise concluída')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.group-list__item')).toHaveCount(2)
+    await page.locator('.group-list__item').filter({ hasText: 'Fotos' }).click()
     await expect(page.locator('.media-card')).toHaveCount(2)
+    await expect(page.locator('.media-card input').nth(1)).toBeChecked()
+    await expect(page.locator('.media-card input').first()).not.toBeChecked()
+    await page.locator('.media-card input').first().check()
+    await expect(page.locator('.media-card input').nth(1)).not.toBeChecked()
+    await page.locator('.media-card input').nth(1).check()
+    await expect(page.locator('.media-card input').first()).not.toBeChecked()
+    await page.getByRole('button', { name: 'Limpar seleção', exact: true }).click()
     await expect
       .poll(() =>
         page
@@ -138,7 +153,8 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     expect(originalRequests).toHaveLength(requestsBeforeSelection)
     await assertFileReleased(join(directory, 'original.jpg'))
     await assertFileReleased(join(directory, 'copy.jpeg'))
-    await expect(page.locator('.media-card input').nth(1)).toBeDisabled()
+    await expect(page.locator('.media-card input').nth(1)).toBeEnabled()
+    await expect(page.locator('.media-card input').nth(1)).not.toBeChecked()
     await page.screenshot({ path: '.test-output/comparison.png', fullPage: true })
     const guardError = await page.evaluate(async () => {
       const ids = await new Promise<string[]>((resolve) => {
@@ -223,6 +239,36 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await page.getByRole('button', { name: 'Enviar à lixeira', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Tudo revisado por aqui.' })).toBeVisible()
     await access(join(nested, 'video-copy.mp4'))
+    await page.getByRole('button', { name: 'Analisar outra pasta', exact: true }).click()
+    await expect(page.locator('.folder-form input')).toHaveCount(1)
+    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue('')
+    // Inspect defaultPath through a cancelled dialog, then verify single-folder memory.
+    await app.evaluate(({ dialog }, expected) => {
+      dialog.showOpenDialog = async (...args: unknown[]) => {
+        const options = args[args.length - 1] as Electron.OpenDialogOptions
+        if (options.defaultPath !== expected)
+          throw new Error(`Unexpected picker directory: ${options.defaultPath}`)
+        return { canceled: true, filePaths: [] }
+      }
+    }, directory)
+    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
+    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue('')
+    await app.evaluate(({ dialog }, selected) => {
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selected] })
+    }, nested)
+    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
+    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(nested)
+    await app.evaluate(({ dialog }, expected) => {
+      dialog.showOpenDialog = async (...args: unknown[]) => {
+        const options = args[args.length - 1] as Electron.OpenDialogOptions
+        if (options.defaultPath !== expected)
+          throw new Error(`Unexpected picker directory: ${options.defaultPath}`)
+        return { canceled: true, filePaths: [] }
+      }
+    }, directory)
+    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
+    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(nested)
+    await expect(page.getByRole('status')).toHaveCount(0)
     expect(errors).toEqual([])
   } finally {
     await app.close()

@@ -1,7 +1,7 @@
-import type { MediaFile, SimilarGroup } from '../shared/types'
+import type { MediaFile, SimilarGroup, SimilarityLevel } from '../shared/types'
 
 const hashBits = 63
-export const imageThreshold = 7
+const thresholds: Record<SimilarityLevel, number> = { strict: 4, balanced: 7, flexible: 12 }
 
 export const hammingDistance = (left: string, right: string): number => {
   let difference = BigInt(`0x${left}`) ^ BigInt(`0x${right}`)
@@ -45,7 +45,12 @@ export const hasVisualDetail = (pixels: Uint8Array): boolean => {
   return variance > 20
 }
 
-export const areSimilar = (left: MediaFile, right: MediaFile): boolean => {
+export const areSimilar = (
+  left: MediaFile,
+  right: MediaFile,
+  level: SimilarityLevel = 'balanced',
+): boolean => {
+  const threshold = thresholds[level]
   if (left.kind !== right.kind) return false
   if (left.sha256 === right.sha256) return true
   if (!left.hashes.length || left.hashes.length !== right.hashes.length) return false
@@ -53,7 +58,7 @@ export const areSimilar = (left: MediaFile, right: MediaFile): boolean => {
   const ratioB = right.width / right.height
   if (Math.abs(ratioA - ratioB) / Math.max(ratioA, ratioB) > 0.08) return false
   if (left.kind === 'image') {
-    return hammingDistance(left.hashes[0], right.hashes[0]) <= imageThreshold
+    return hammingDistance(left.hashes[0], right.hashes[0]) <= threshold
   }
   const durationA = left.duration ?? 0
   const durationB = right.duration ?? 0
@@ -62,32 +67,40 @@ export const areSimilar = (left: MediaFile, right: MediaFile): boolean => {
   }
   const distances = left.hashes.map((hash, index) => hammingDistance(hash, right.hashes[index]))
   return (
-    distances.filter((distance) => distance <= imageThreshold).length >= 4 &&
-    distances.reduce((sum, distance) => sum + distance, 0) / distances.length <= imageThreshold
+    distances.filter((distance) => distance <= threshold).length >= 4 &&
+    distances.reduce((sum, distance) => sum + distance, 0) / distances.length <= threshold
   )
 }
 
-// Eight disjoint bands guarantee a shared band for hashes within seven bits.
-const bandKeys = (hash: string): string[] => {
+// Threshold + 1 disjoint bands guarantee a shared band for candidate matches.
+const bandKeys = (hash: string, count: number): string[] => {
   const bits = BigInt(`0x${hash}`).toString(2).padStart(hashBits, '0')
-  return Array.from({ length: 8 }, (_, index) => `${index}:${bits.slice(index * 8, index * 8 + 8)}`)
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      `${index}:${bits.slice(Math.floor((index * hashBits) / count), Math.floor(((index + 1) * hashBits) / count))}`,
+  )
 }
 
-export const groupSimilarFiles = (files: MediaFile[]): SimilarGroup[] => {
+export const groupSimilarFiles = (
+  files: MediaFile[],
+  level: SimilarityLevel = 'balanced',
+): SimilarGroup[] => {
   const groups: SimilarGroup[] = []
   const exactIndex = new Map<string, SimilarGroup>()
   const visualIndex = new Map<string, Set<SimilarGroup>>()
   const sorted = [...files].sort(
     (a, b) =>
-      b.width * b.height - a.width * a.height || b.size - a.size || a.path.localeCompare(b.path),
+      b.size - a.size || b.width * b.height - a.width * a.height || a.path.localeCompare(b.path),
   )
   sorted.forEach((file) => {
     const keys = file.hashes.flatMap((hash, frame) =>
-      bandKeys(hash).map((band) => `${file.kind}:${frame}:${band}`),
+      bandKeys(hash, thresholds[level] + 1).map((band) => `${file.kind}:${frame}:${band}`),
     )
     const candidates = new Set(keys.flatMap((key) => [...(visualIndex.get(key) ?? [])]))
     let group = exactIndex.get(`${file.kind}:${file.sha256}`)
-    if (!group) group = [...candidates].find((candidate) => areSimilar(candidate.files[0], file))
+    if (!group)
+      group = [...candidates].find((candidate) => areSimilar(candidate.files[0], file, level))
     if (group) {
       if (group.files[0].sha256 !== file.sha256) group.match = 'similar'
       group.files.push(file)
