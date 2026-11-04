@@ -29,7 +29,7 @@ test('closes active and opening preview handles before allowing the trash operat
 })
 
 test('explains native abort errors without claiming a specific cause', () => {
-  assert.match(trashErrorMessage(new Error('Operation was aborted')), /O Windows interrompeu/)
+  assert.match(trashErrorMessage(new Error('Operation was aborted')), /Windows interrupted/)
   assert.match(trashErrorMessage(new Error('Operation was aborted')), /Operation was aborted/)
   assert.equal(trashErrorMessage(new Error('Access denied')), 'Access denied')
 })

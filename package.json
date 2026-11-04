@@ -2,7 +2,7 @@
   "name": "file-manager",
   "version": "0.1.0",
   "private": true,
-  "description": "Organizador local de fotos e vídeos semelhantes",
+  "description": "Local organizer for similar photos and videos",
   "author": "",
   "main": "out/main/index.js",
   "scripts": {

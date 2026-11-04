@@ -1,7 +1,7 @@
 export const formatBytes = (bytes: number): string => {
   if (!bytes) return '0 B'
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), 4)
-  return `${(bytes / 1024 ** index).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ${['B', 'KB', 'MB', 'GB', 'TB'][index]}`
+  return `${(bytes / 1024 ** index).toLocaleString('en-US', { maximumFractionDigits: 1 })} ${['B', 'KB', 'MB', 'GB', 'TB'][index]}`
 }
 
 export const formatDuration = (seconds: number): string => {

@@ -264,11 +264,23 @@ button {
   }
 }
 .folder-form {
+  &__select {
+    position: relative;
+    > svg {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--muted);
+    }
+  }
   &__similarity {
     margin-top: 20px;
     select {
       width: 100%;
-      padding: 11px 12px;
+      padding: 11px 42px 11px 12px;
+      appearance: none;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: white;

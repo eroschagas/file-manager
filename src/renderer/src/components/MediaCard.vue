@@ -14,7 +14,7 @@
       <button
         v-else
         class="media-card__image-button"
-        :aria-label="file.kind === 'video' ? 'Reproduzir vídeo' : 'Ampliar imagem'"
+        :aria-label="file.kind === 'video' ? 'Play video' : 'Enlarge image'"
         :disabled="suspendPreview"
         @click="openPreview"
       >
@@ -26,7 +26,7 @@
         /></span>
       </button>
       <span v-if="preferred" class="media-card__badge"
-        ><PhSparkle :size="13" weight="fill" /> Maior resolução no grupo</span
+        ><PhSparkle :size="13" weight="fill" /> Highest resolution in this group</span
       >
     </div>
     <div class="media-card__body">
@@ -34,8 +34,8 @@
         <h3 :title="file.name">{{ file.name }}</h3>
         <button
           class="icon-button"
-          title="Mostrar na pasta"
-          aria-label="Mostrar na pasta"
+          title="Show in folder"
+          aria-label="Show in folder"
           @click="emit('reveal', file.id)"
         >
           <PhFolderOpen :size="19" />
@@ -48,7 +48,7 @@
         ><span v-if="file.duration">{{ formatDuration(file.duration) }}</span>
       </div>
       <p v-if="videoFailed" class="media-card__warning">
-        Este formato não pode ser reproduzido aqui. Abra pela pasta para conferir.
+        This format cannot be played here. Open it from its folder to review it.
       </p>
       <label :class="['media-card__selection', { 'media-card__selection--disabled': disabled }]">
         <input
@@ -57,7 +57,7 @@
           :disabled="disabled"
           @change="emit('toggle', file.id)"
         />
-        <span>{{ selected ? 'Selecionado para a lixeira' : 'Selecionar para a lixeira' }}</span
+        <span>{{ selected ? 'Selected for Recycle Bin' : 'Select for Recycle Bin' }}</span
         ><PhTrash :size="16" />
       </label>
     </div>

@@ -90,36 +90,36 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       if (request.url().startsWith('media://original/')) originalRequests.push(request.url())
     })
     page.on('pageerror', (error) => errors.push(error.message))
-    await expect(page.getByRole('heading', { name: 'Por onde vamos começar?' })).toBeVisible()
-    await expect(page.getByLabel('Similaridade', { exact: true })).toHaveValue('balanced')
-    await page.getByLabel('Similaridade', { exact: true }).selectOption('flexible')
+    await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
+    await expect(page.getByLabel('Similarity', { exact: true })).toHaveValue('balanced')
+    await page.getByLabel('Similarity', { exact: true }).selectOption('flexible')
     await expect(
       page.getByText(
-        'Encontra mais candidatos, mas pode agrupar fotos diferentes. Revise cada grupo antes de excluir.',
+        'Finds more candidates, but may group different photos together. Review each group before deleting.',
       ),
     ).toBeVisible()
     await page.screenshot({ path: '.test-output/setup.png', fullPage: true })
-    await page.getByLabel('Pasta para análise').fill(join(directory, 'nonexistent'))
-    await page.getByRole('button', { name: 'Analisar arquivos' }).click()
+    await page.getByLabel('Folder to scan').fill(join(directory, 'nonexistent'))
+    await page.getByRole('button', { name: 'Scan files' }).click()
     await expect(page.getByRole('status')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Por onde vamos começar?' })).toBeVisible()
-    await page.getByLabel('Pasta para análise').fill(directory)
-    await page.getByRole('button', { name: '+ Adicionar pasta', exact: true }).click()
-    await page.getByLabel('Pasta para análise 2', { exact: true }).fill(nested)
-    await page.getByRole('button', { name: 'Remover pasta 2', exact: true }).click()
-    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(directory)
+    await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
+    await page.getByLabel('Folder to scan').fill(directory)
+    await page.getByRole('button', { name: '+ Add folder', exact: true }).click()
+    await page.getByLabel('Folder to scan 2', { exact: true }).fill(nested)
+    await page.getByRole('button', { name: 'Remove folder 2', exact: true }).click()
+    await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue(directory)
     await app.evaluate(
       ({ dialog }, paths) => {
         dialog.showOpenDialog = async () => ({ canceled: false, filePaths: paths })
       },
       [directory, nested],
     )
-    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
-    await expect(page.getByLabel('Pasta para análise 2', { exact: true })).toHaveValue(nested)
-    await page.getByRole('button', { name: 'Analisar arquivos' }).click()
-    await expect(page.getByText('Análise concluída')).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: 'Browse folders', exact: true }).click()
+    await expect(page.getByLabel('Folder to scan 2', { exact: true })).toHaveValue(nested)
+    await page.getByRole('button', { name: 'Scan files' }).click()
+    await expect(page.getByText('Scan complete')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.group-list__item')).toHaveCount(2)
-    await page.locator('.group-list__item').filter({ hasText: 'Fotos' }).click()
+    await page.locator('.group-list__item').filter({ hasText: 'Photos' }).click()
     await expect(page.locator('.media-card')).toHaveCount(2)
     await expect(page.locator('.media-card input').nth(1)).toBeChecked()
     await expect(page.locator('.media-card input').first()).not.toBeChecked()
@@ -127,7 +127,7 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     await expect(page.locator('.media-card input').nth(1)).not.toBeChecked()
     await page.locator('.media-card input').nth(1).check()
     await expect(page.locator('.media-card input').first()).not.toBeChecked()
-    await page.getByRole('button', { name: 'Limpar seleção', exact: true }).click()
+    await page.getByRole('button', { name: 'Clear selection', exact: true }).click()
     await expect
       .poll(() =>
         page
@@ -139,7 +139,7 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     expect(originalRequests).toHaveLength(0)
     await assertFileReleased(join(directory, 'original.jpg'))
     await assertFileReleased(join(directory, 'copy.jpeg'))
-    await page.getByRole('button', { name: 'Ampliar imagem' }).first().click()
+    await page.getByRole('button', { name: 'Enlarge image' }).first().click()
     await expect(page.locator('dialog')).toBeVisible()
     await expect
       .poll(() =>
@@ -147,7 +147,7 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       )
       .toBe(640)
     await assertFileReleased(join(directory, 'original.jpg'))
-    await page.getByRole('button', { name: 'Fechar imagem' }).click()
+    await page.getByRole('button', { name: 'Close image' }).click()
     const requestsBeforeSelection = originalRequests.length
     await page.locator('.media-card input').first().check()
     expect(originalRequests).toHaveLength(requestsBeforeSelection)
@@ -172,12 +172,14 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
         return String(error)
       }
     })
-    expect(guardError).toContain('Mantenha pelo menos um arquivo')
+    expect(guardError).toContain('Keep at least one available file')
     await app.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
     })
-    await page.getByRole('button', { name: 'Enviar à lixeira', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Enviar à lixeira', exact: true })).toBeEnabled()
+    await page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }).click()
+    await expect(
+      page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }),
+    ).toBeEnabled()
     await expect(page.locator('.group-list__item')).toHaveCount(2)
     await app.evaluate(({ dialog }) => {
       dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
@@ -193,14 +195,14 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
         await trashItem(path)
       }
     })
-    await page.getByRole('button', { name: 'Enviar à lixeira', exact: true }).click()
+    await page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('original.jpg')
-    await expect(page.getByRole('status')).toContainText('O Windows interrompeu')
+    await expect(page.getByRole('status')).toContainText('Windows interrupted')
     await expect(page.locator('.media-card input').first()).toBeChecked()
     await access(join(directory, 'original.jpg'))
-    await page.getByRole('button', { name: 'Enviar à lixeira', exact: true }).click()
+    await page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }).click()
     await expect(page.locator('.group-list__item')).toHaveCount(1)
-    await expect(page.getByRole('status')).toContainText('1 arquivo(s) enviado(s)')
+    await expect(page.getByRole('status')).toContainText('1 file(s) moved')
     // The selected original is a generated temporary fixture; its other version must remain.
     await expect
       .poll(async () => {
@@ -217,7 +219,7 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
     const requestsBeforeVideo = originalRequests.length
     await page.locator('.media-card input').first().check()
     expect(originalRequests).toHaveLength(requestsBeforeVideo)
-    await page.getByRole('button', { name: 'Reproduzir vídeo' }).first().click()
+    await page.getByRole('button', { name: 'Play video' }).first().click()
     await expect(page.locator('video')).toHaveCount(1)
     await page
       .locator('video')
@@ -236,12 +238,12 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       .first()
       .evaluate((node) => (node as HTMLVideoElement).play())
     await page.locator('.media-card input').first().check()
-    await page.getByRole('button', { name: 'Enviar à lixeira', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Tudo revisado por aqui.' })).toBeVisible()
+    await page.getByRole('button', { name: 'Move to Recycle Bin', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'All reviewed here.' })).toBeVisible()
     await access(join(nested, 'video-copy.mp4'))
-    await page.getByRole('button', { name: 'Analisar outra pasta', exact: true }).click()
+    await page.getByRole('button', { name: 'Scan another folder', exact: true }).click()
     await expect(page.locator('.folder-form input')).toHaveCount(1)
-    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue('')
+    await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue('')
     // Inspect defaultPath through a cancelled dialog, then verify single-folder memory.
     await app.evaluate(({ dialog }, expected) => {
       dialog.showOpenDialog = async (...args: unknown[]) => {
@@ -251,13 +253,13 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
         return { canceled: true, filePaths: [] }
       }
     }, directory)
-    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
-    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue('')
+    await page.getByRole('button', { name: 'Browse folders', exact: true }).click()
+    await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue('')
     await app.evaluate(({ dialog }, selected) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selected] })
     }, nested)
-    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
-    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(nested)
+    await page.getByRole('button', { name: 'Browse folders', exact: true }).click()
+    await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue(nested)
     await app.evaluate(({ dialog }, expected) => {
       dialog.showOpenDialog = async (...args: unknown[]) => {
         const options = args[args.length - 1] as Electron.OpenDialogOptions
@@ -266,8 +268,8 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
         return { canceled: true, filePaths: [] }
       }
     }, directory)
-    await page.getByRole('button', { name: 'Procurar pasta', exact: true }).click()
-    await expect(page.getByLabel('Pasta para análise', { exact: true })).toHaveValue(nested)
+    await page.getByRole('button', { name: 'Browse folders', exact: true }).click()
+    await expect(page.getByLabel('Folder to scan', { exact: true })).toHaveValue(nested)
     await expect(page.getByRole('status')).toHaveCount(0)
     expect(errors).toEqual([])
   } finally {

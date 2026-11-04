@@ -45,7 +45,7 @@ export const trashErrorMessage = (error: unknown): string => {
   const message = error instanceof Error ? error.message : String(error)
   if (/operation was aborted/i.test(message)) {
     return (
-      'O Windows interrompeu o envio à lixeira. Pode haver um arquivo em uso, uma restrição de permissão ou um problema com a lixeira da unidade. Feche outros visualizadores e tente novamente. Detalhe: ' +
+      'Windows interrupted the move to the Recycle Bin. A file may be in use, permissions may be restricted, or the drive Recycle Bin may be unavailable. Close other viewers and try again. Details: ' +
       message
     )
   }

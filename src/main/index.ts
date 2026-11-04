@@ -75,11 +75,11 @@ const unchangedFile = async (file: MediaFile): Promise<void> => {
     info.size !== file.size ||
     info.mtimeMs !== file.mtimeMs
   ) {
-    throw new Error('Arquivo alterado desde a análise. Analise a pasta novamente.')
+    throw new Error('The file has changed since the scan. Scan the folder again.')
   }
   const resolved = await realpath(file.path)
   if (!result || !result.roots.some((root) => isInsideFolder(root, resolved)))
-    throw new Error('Arquivo fora das pastas analisadas.')
+    throw new Error('The file is outside the scanned folders.')
 }
 
 const setupIpc = (): void => {
@@ -91,7 +91,7 @@ const setupIpc = (): void => {
         event.sender !== window.webContents ||
         event.senderFrame !== window.webContents.mainFrame
       ) {
-        throw new Error('Origem inválida.')
+        throw new Error('Invalid source.')
       }
       return handler(...args)
     })
@@ -99,7 +99,7 @@ const setupIpc = (): void => {
   handle('folder:choose', async () => {
     const selection = await dialog.showOpenDialog(window!, {
       properties: ['openDirectory', 'multiSelections'],
-      title: 'Escolha as pastas para analisar',
+      title: 'Choose folders to scan',
       defaultPath: folderPickerDirectory,
     })
     if (!selection.canceled && selection.filePaths.length) {
@@ -108,10 +108,10 @@ const setupIpc = (): void => {
     return selection.canceled ? [] : selection.filePaths
   })
   handle('scan:start', async (folders: unknown, similarity: unknown = 'balanced') => {
-    if (worker || trashBusy) throw new Error('Aguarde a operação atual terminar.')
+    if (worker || trashBusy) throw new Error('Wait for the current operation to finish.')
     const roots = await resolveFolders(folders)
     if (!similarityLevels.includes(similarity as SimilarityLevel))
-      throw new Error('Nível de similaridade inválido.')
+      throw new Error('Invalid similarity level.')
     folderPickerDirectory = getFolderPickerDirectory(folders as string[])
     mediaFiles.clear()
     result = null
@@ -138,8 +138,7 @@ const setupIpc = (): void => {
       emit({ type: 'error', message: error.message })
     })
     current.on('exit', (code) => {
-      if (!finished)
-        emit({ type: 'error', message: `A análise foi interrompida (código ${code}).` })
+      if (!finished) emit({ type: 'error', message: `The scan was interrupted (code ${code}).` })
       if (worker === current) worker = null
     })
   })
@@ -148,17 +147,17 @@ const setupIpc = (): void => {
   })
   handle('file:reveal', (id: unknown) => {
     const file = typeof id === 'string' ? mediaFiles.get(id) : undefined
-    if (!file) throw new Error('Arquivo não encontrado nesta análise.')
+    if (!file) throw new Error('File not found in this scan.')
     shell.showItemInFolder(file.path)
   })
   handle('files:trash', async (ids: unknown): Promise<TrashResult> => {
-    if (worker || trashBusy || !result) throw new Error('Aguarde a operação atual terminar.')
+    if (worker || trashBusy || !result) throw new Error('Wait for the current operation to finish.')
     if (
       !Array.isArray(ids) ||
       !ids.length ||
       !ids.every((id) => typeof id === 'string' && mediaFiles.has(id))
     ) {
-      throw new Error('Seleção de arquivos inválida.')
+      throw new Error('Invalid file selection.')
     }
     trashBusy = true
     try {
@@ -173,18 +172,18 @@ const setupIpc = (): void => {
         const available = await Promise.allSettled(retained.map(unchangedFile))
         if (!available.some((entry) => entry.status === 'fulfilled')) {
           throw new Error(
-            'Mantenha pelo menos um arquivo disponível em cada grupo. Se a pasta mudou, analise novamente.',
+            'Keep at least one available file in each group. If the folder has changed, scan it again.',
           )
         }
       }
       await Promise.all(selectedFiles.map(unchangedFile))
       const confirmation = await dialog.showMessageBox(window!, {
         type: 'warning',
-        title: 'Enviar arquivos à lixeira',
-        message: `Enviar ${selectedFiles.length} arquivo(s) à lixeira?`,
+        title: 'Move files to Recycle Bin',
+        message: `Move ${selectedFiles.length} file(s) to the Recycle Bin?`,
         detail:
-          'Confira as imagens e os vídeos antes de confirmar. Você poderá restaurar os arquivos pela lixeira do sistema.',
-        buttons: ['Cancelar', 'Enviar à lixeira'],
+          'Review the images and videos before confirming. You can restore the files from the system Recycle Bin.',
+        buttons: ['Cancel', 'Move to Recycle Bin'],
         defaultId: 0,
         cancelId: 0,
         noLink: true,
@@ -201,7 +200,7 @@ const setupIpc = (): void => {
             group.files.filter((entry) => !selected.has(entry.id)).map(unchangedFile),
           )
           if (!retained.some((entry) => entry.status === 'fulfilled'))
-            throw new Error('A cópia que seria mantida não está mais disponível.')
+            throw new Error('The copy to keep is no longer available.')
           await unchangedFile(file)
           await shell.trashItem(file.path)
           response.deletedIds.push(file.id)

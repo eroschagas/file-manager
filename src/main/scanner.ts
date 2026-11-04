@@ -65,10 +65,7 @@ const runBinary = (binary: string, args: string[], signal: AbortSignal): Promise
       if (code === 0 && !tooLarge) resolve(Buffer.concat(chunks))
       else
         reject(
-          new Error(
-            stderr.trim() ||
-              'Não foi possível decodificar o vídeo (limite de 90 segundos por etapa).',
-          ),
+          new Error(stderr.trim() || 'The video could not be decoded (90-second limit per step).'),
         )
     })
   })
@@ -172,7 +169,7 @@ export const scanFolder = async (
           .jpeg({ quality: 80 })
           .toFile(thumbnailPath)
       } else {
-        if (!ffmpegPath) throw new Error('FFmpeg indisponível nesta plataforma.')
+        if (!ffmpegPath) throw new Error('FFmpeg is unavailable on this platform.')
         const metadata = JSON.parse(
           (
             await runBinary(
@@ -193,7 +190,7 @@ export const scanFolder = async (
           }[]
         }
         const stream = metadata.streams.find((item) => item.codec_type === 'video')
-        if (!stream) throw new Error('Nenhuma faixa de vídeo encontrada.')
+        if (!stream) throw new Error('No video track found.')
         width = stream.width
         height = stream.height
         const rotation = Number(
@@ -203,8 +200,7 @@ export const scanFolder = async (
         )
         if (Math.abs(rotation) % 180 === 90) [width, height] = [height, width]
         duration = Number(stream.duration ?? metadata.format.duration)
-        if (!Number.isFinite(duration) || duration <= 0)
-          throw new Error('Duração de vídeo inválida.')
+        if (!Number.isFinite(duration) || duration <= 0) throw new Error('Invalid video duration.')
         const frames: Buffer[] = []
         for (const fraction of [0.1, 0.3, 0.5, 0.7, 0.9]) {
           signal.throwIfAborted()
@@ -242,7 +238,7 @@ export const scanFolder = async (
       }
       const after = await stat(path)
       if (after.size !== before.size || after.mtimeMs !== before.mtimeMs)
-        throw new Error('Arquivo alterado durante a análise; analise novamente.')
+        throw new Error('The file changed during the scan; scan it again.')
       files.push({
         id,
         path,

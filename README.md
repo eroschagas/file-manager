@@ -1,45 +1,44 @@
 # File Manager
 
-Aplicativo desktop local em Vue 3, TypeScript e Electron para encontrar fotos e vídeos duplicados ou visualmente semelhantes, inclusive em resoluções e níveis de compressão diferentes.
+A local desktop app built with Vue 3, TypeScript, and Electron to find duplicate or visually similar photos and videos, including versions with different resolutions and compression levels.
 
-## Desenvolvimento
+## Development
 
-Requer Node.js 22.12 ou superior (Node 22 LTS recomendado) e npm.
+Requires Node.js 22.12 or later (Node 22 LTS recommended) and npm.
 
 ```sh
 npm install
 npm run dev
 ```
 
-O comando inicia o Vite e abre a janela do Electron. Alterações na interface Vue aparecem com hot reload. Use **Ctrl + Shift + I** para abrir o DevTools durante o desenvolvimento. Abrir apenas o endereço do Vite no navegador não disponibiliza as operações de arquivos.
+This starts Vite and opens the Electron window. Vue changes appear through hot reload. Press **Ctrl + Shift + I** to open DevTools during development. Opening the Vite URL in a regular browser does not provide access to desktop file operations.
 
-1. Digite o caminho completo da pasta ou use **Procurar pasta**, que permite selecionar várias pastas. Use **Adicionar pasta** para incluir mais caminhos manualmente e o botão de remover para retirar uma entrada.
+1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
+2. Choose **Similarity**: Strict, Balanced (default), or Flexible. Flexible finds more candidates and requires careful review. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
+3. Select a group to compare versions, resolutions, and sizes. Cards use independent thumbnails. Click an image to enlarge it or a video thumbnail to play it when Chromium supports the codec. Selecting a file for the Recycle Bin does not open the original.
+4. Files appear from largest to smallest in bytes, with the smallest file in each group selected initially. Review the selection before confirming. In a group of two files, selecting the other file switches the selection automatically. At least one available copy must remain in each group.
 
-   Durante a execução do aplicativo, o seletor lembra a pasta anterior à última seleção. Para várias pastas, abre na ancestral comum mais próxima; se estiverem em unidades diferentes, usa a pasta anterior à última da lista. Ao voltar dos resultados, os campos são limpos e resta um único input vazio, mantendo a referência do seletor.
+During the current app session, the folder picker remembers the parent of the last selected folder. For multiple folders, it opens their nearest common ancestor; across different drives, it uses the parent of the last folder. Returning from results clears the inputs and leaves one empty field while preserving the picker location.
 
-2. Escolha a **Similaridade**: Rigoroso, Equilibrado (padrão) ou Flexível. O modo Flexível encontra mais candidatos e exige mais cuidado na revisão. Clique em **Analisar arquivos**. Os arquivos de todas as pastas são comparados juntos. A busca inclui todas as subpastas reais; links simbólicos e junções não são seguidos. Pastas repetidas ou contidas em outra selecionada são analisadas uma única vez. Campos vazios são ignorados; caminhos inválidos impedem o início da análise.
-3. Selecione um grupo para comparar as versões, as resoluções e os tamanhos. Os cards usam miniaturas independentes dos originais. Clique na imagem para ampliar ou na miniatura do vídeo para reproduzir, quando o codec for suportado pelo Chromium. Marcar um arquivo para a lixeira não abre o original.
-4. Os arquivos aparecem do maior para o menor em bytes, com o menor pré-selecionado em cada grupo. Revise a seleção antes de confirmar no diálogo do sistema. Em grupos de dois arquivos, marcar o outro troca a seleção automaticamente. É obrigatório manter pelo menos uma cópia disponível em cada grupo.
+Scanning does not modify files. Unreadable, damaged, or unsupported files are reported at the end. A failed Recycle Bin operation never falls back to permanent deletion.
 
-A análise não altera os arquivos. Arquivos sem permissão, danificados ou sem suporte de decodificação são informados ao final. Não há exclusão permanente como alternativa quando a lixeira falha.
+## How comparison works
 
-## Como a comparação funciona
+- SHA-256 detects byte-identical copies among successfully decoded media files.
+- Photos are normalized for orientation, converted to grayscale, and compared using a 63-bit DCT perceptual hash. Maximum distance is four bits in Strict mode, seven in Balanced, and twelve in Flexible. Aspect ratios must also match within tolerance. The same thresholds apply to video frames.
+- FFprobe reads video metadata. FFmpeg extracts frames at 10%, 30%, 50%, 70%, and 90% of the duration. Matching requires similar durations, at least four similar frames, and an average distance within the threshold.
+- A hash segment index reduces unnecessary comparisons. Each group compares its members directly against a reference to avoid chaining progressively different files.
+- Nearly uniform images and frames participate only in exact matching to reduce false positives.
 
-- SHA-256 encontra cópias binariamente idênticas entre os arquivos de mídia decodificados com sucesso.
-- Fotos são normalizadas por orientação, convertidas para tons de cinza e comparadas com um hash perceptual DCT de 63 bits. A distância máxima é de quatro bits no modo Rigoroso, sete no Equilibrado e doze no Flexível, com verificação de proporção. O mesmo limite é aplicado aos frames dos vídeos.
-- Vídeos são inspecionados pelo FFprobe. O FFmpeg extrai frames em 10%, 30%, 50%, 70% e 90% da duração. A comparação exige duração próxima, ao menos quatro frames semelhantes e distância média dentro do limite.
-- Um índice por segmentos da assinatura reduz as comparações desnecessárias. Cada grupo compara suas versões diretamente com uma referência, evitando encadear arquivos progressivamente diferentes.
-- Imagens ou frames praticamente uniformes participam somente da comparação exata para reduzir falsos positivos.
+Similarity is a suggestion for review, not proof of equivalence. Burst photos may be grouped together. Significant crops, mirroring, heavy edits, or trimmed videos may not match. Video analysis compares visual content, **not audio**. Higher resolution does not guarantee higher quality.
 
-Similaridade é uma indicação para revisão, não prova de equivalência. Fotos em sequência podem aparecer juntas. Cortes, espelhamento, edições fortes e vídeos com trechos removidos podem não ser encontrados. A análise de vídeo compara a imagem, **não o áudio**. A referência de maior resolução não garante maior qualidade.
+Candidate image extensions: JPG, JPEG, PNG, WebP, AVIF, TIFF, GIF, HEIC, and HEIF. HEIC/HEIF and some codecs depend on the installed Sharp/FFmpeg distribution; decoding failures are reported. GIFs are compared by their first frame. Video extensions: MP4, MOV, MKV, AVI, WebM, M4V, MTS, and M2TS. Playback support is more limited than analysis support; use **Show in folder** when needed.
 
-Extensões candidatas de imagem: JPG, JPEG, PNG, WebP, AVIF, TIFF, GIF, HEIC e HEIF. HEIC/HEIF e alguns codecs dependem do suporte disponível na distribuição do Sharp/FFmpeg; falhas são listadas. GIFs são comparados pelo primeiro frame. Vídeos: MP4, MOV, MKV, AVI, WebM, M4V, MTS e M2TS. O suporte de reprodução na interface é mais restrito que o de análise; use **Mostrar na pasta** quando necessário.
+Scans are not persisted: each run recalculates signatures. Temporary thumbnails are created outside the scanned folders. Scanning runs in a separate worker thread and can be canceled. Media files are processed one at a time to control memory use and load.
 
-Nesta versão, as análises não são persistidas: cada execução recalcula as assinaturas. Miniaturas temporárias são criadas fora da pasta analisada. A análise roda em uma worker thread separada da interface e pode ser cancelada. Arquivos de mídia são processados um por vez para controlar memória e carga.
+Images are read into buffers and closed before Sharp processes them, preventing the native image cache from retaining original file handles. Enlarged images are also served from completed reads rather than persistent JPEG streams. Video streams are released before moving files to the Recycle Bin.
 
-Na análise de imagens, o arquivo é lido para um buffer e fechado antes de ser processado pelo Sharp. Isso evita que o cache nativo retenha um arquivo original aberto. A visualização ampliada também recebe os dados de uma leitura concluída, em vez de manter um stream do JPEG aberto. Os streams de vídeo são liberados antes de enviar arquivos à lixeira.
-
-## Comandos
+## Commands
 
 ```sh
 npm run typecheck
@@ -50,20 +49,20 @@ npm run pack
 npm run dist:win
 ```
 
-`pack` gera a pasta do aplicativo em `release/`; `dist:win` gera o instalador Windows. O Node e os binários de FFmpeg/FFprobe são incluídos na distribuição. A compilação de distribuição deve ser feita no sistema/arquitetura de destino para incluir os binários correspondentes. O instalador inicial não possui certificado de assinatura.
+`pack` generates the application directory in `release/`; `dist:win` generates the Windows installer. Node and the FFmpeg/FFprobe binaries are included. Build on the target operating system and architecture to include the corresponding binaries. The initial installer has no signing certificate.
 
-`test:desktop` abre uma janela real do Electron e testa o fluxo completo com arquivos gerados temporariamente. O teste confirma o cancelamento da lixeira, simula uma falha do Windows seguida de nova tentativa e envia uma imagem e um vídeo em reprodução à lixeira para validar a operação; não utiliza pastas pessoais. Screenshots são salvos em `.test-output/`.
+`test:desktop` opens a real Electron window and tests the complete workflow with temporary generated files. It checks Recycle Bin cancellation, simulates a Windows failure followed by a retry, and moves a temporary image and a playing video to the Recycle Bin. It does not use personal folders. Screenshots are saved in `.test-output/`.
 
-## Estrutura
+## Structure
 
-- `src/main`: janela, operações locais, análise e comparação.
-- `src/preload`: ponte com operações específicas expostas à interface.
-- `src/renderer/src`: componentes Vue e estilos SCSS.
-- `src/shared`: contratos TypeScript entre processos.
-- `tests`: comparação perceptual e análise real com fotos/vídeos gerados pelos testes.
+- `src/main`: window, local operations, scanning, and comparison.
+- `src/preload`: bridge exposing specific operations to the interface.
+- `src/renderer/src`: Vue components and SCSS styles.
+- `src/shared`: TypeScript contracts between processes.
+- `tests`: perceptual comparison and real scanning with generated photos and videos.
 
-O renderer usa isolamento de contexto, sandbox e não recebe acesso direto ao Node. Acesso a prévias e operações de lixeira são limitados aos arquivos da análise atual. A aplicação verifica tamanho e data de modificação antes de enviar à lixeira e exige confirmação nativa.
+The renderer uses context isolation and sandboxing without direct Node access. Preview and Recycle Bin operations are restricted to files from the current scan. File size and modification time are checked before moving files, and a native confirmation dialog is required.
 
-## Distribuição e licenças
+## Distribution and licenses
 
-As ferramentas não cobram por arquivo analisado. Antes de distribuir publicamente, inclua os avisos e licenças de terceiros e confira as obrigações dos binários de FFmpeg/FFprobe incluídos. A distribuição do `ffmpeg-static` pode usar componentes GPL; não presuma que qualquer build do FFmpeg seja LGPL. Consulte [FFmpeg](https://ffmpeg.org/legal.html), [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static) e [ffprobe-static](https://github.com/joshwnj/ffprobe-static).
+There is no per-file analysis fee. Before public distribution, include third-party notices and licenses and check the obligations of the included FFmpeg/FFprobe binaries. The `ffmpeg-static` distribution may include GPL components; do not assume every FFmpeg build is LGPL. See [FFmpeg](https://ffmpeg.org/legal.html), [ffmpeg-static](https://github.com/eugeneware/ffmpeg-static), and [ffprobe-static](https://github.com/joshwnj/ffprobe-static).
