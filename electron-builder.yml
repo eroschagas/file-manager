@@ -1,0 +1,17 @@
+appId: com.local.filemanager
+productName: File Manager
+directories:
+  output: release
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - node_modules/sharp/**/*
+  - node_modules/@img/**/*
+  - node_modules/ffmpeg-static/**/*
+  - node_modules/ffprobe-static/**/*
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
