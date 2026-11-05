@@ -2,8 +2,6 @@ node_modules/
 out/
 dist/
 release/
-installers/*
-!installers/README.md
 *.log
 .DS_Store
 .test-output/
