@@ -186,7 +186,7 @@ onBeforeUnmount(releaseVideo)
     pointer-events: none;
   }
   &__body {
-    padding: 17px;
+    padding: 8px 12px;
   }
   &__title {
     display: flex;
@@ -213,7 +213,7 @@ onBeforeUnmount(releaseVideo)
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 8px;
     span {
       padding: 4px 7px;
       background: var(--surface);
@@ -231,8 +231,8 @@ onBeforeUnmount(releaseVideo)
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 17px;
-    padding-top: 15px;
+    margin-top: 12px;
+    padding-top: 8px;
     border-top: 1px solid var(--border);
     color: var(--muted);
     font-size: 12px;

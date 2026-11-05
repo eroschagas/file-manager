@@ -107,7 +107,7 @@ const hasSelection = computed(() =>
     align-items: center;
     justify-content: flex-end;
     gap: 8px;
-    padding: 0 0 12px;
+    padding: 0 0 8px;
     background: #f7f8fa;
     > span {
       margin-right: auto;
@@ -123,8 +123,8 @@ const hasSelection = computed(() =>
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
-    padding: 5px 0 15px;
+    gap: 16px;
+    padding: 4px 0 12px;
     h2 {
       font-size: 20px;
       font-weight: 600;

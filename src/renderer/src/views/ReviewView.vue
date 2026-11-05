@@ -74,7 +74,7 @@ const emit = defineEmits<{
   display: grid;
   grid-template-columns: 255px minmax(0, 1fr);
   gap: 25px;
-  margin-top: 18px;
+  margin-top: 12px;
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
 }
