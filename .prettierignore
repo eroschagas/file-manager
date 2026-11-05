@@ -2,6 +2,8 @@ node_modules
 out
 dist
 release
+installers/*
+!installers/README.md
 package-lock.json
 .test-output
 test-results

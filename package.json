@@ -14,7 +14,11 @@
     "test:desktop": "npm run build && playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:win": "npm run verify:media -- win && npm run build && electron-builder --win nsis --x64 --publish never && node scripts/collect-installers.mjs win",
+    "dist:mac": "npm run verify:media -- mac && npm run build && electron-builder --mac dmg --x64 --publish never && node scripts/collect-installers.mjs mac",
+    "dist:linux": "npm run verify:media -- linux && npm run build && electron-builder --linux AppImage --x64 --publish never && node scripts/collect-installers.mjs linux",
+    "verify:media": "node scripts/verify-media-binaries.mjs",
+    "verify:release": "node scripts/verify-release-assets.mjs",
     "pack": "npm run build && electron-builder --dir"
   },
   "dependencies": {

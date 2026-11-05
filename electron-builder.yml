@@ -12,6 +12,17 @@ asarUnpack:
   - node_modules/ffprobe-static/**/*
 win:
   target: nsis
+  artifactName: File-Manager-Windows-${arch}-Setup.${ext}
+mac:
+  target: dmg
+  artifactName: File-Manager-macOS-${arch}.${ext}
+  category: public.app-category.utilities
+  identity: null
+  notarize: false
+linux:
+  target: AppImage
+  artifactName: File-Manager-Linux-${arch}.${ext}
+  category: Utility
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
