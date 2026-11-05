@@ -1,4 +1,5 @@
 import type { OrganizerApi } from './organizer'
+import type { MetadataApi } from './metadata'
 
 export type MediaKind = 'image' | 'video'
 export const similarityLevels = ['strict', 'balanced', 'flexible', 'broad'] as const
@@ -55,7 +56,7 @@ export type WorkerEvent =
   | { type: 'cancelled' }
   | { type: 'error'; message: string }
 
-export interface DesktopApi extends OrganizerApi {
+export interface DesktopApi extends OrganizerApi, MetadataApi {
   chooseFolder: () => Promise<string[]>
   startScan: (paths: string[], similarity: SimilarityLevel) => Promise<void>
   cancelScan: () => Promise<void>

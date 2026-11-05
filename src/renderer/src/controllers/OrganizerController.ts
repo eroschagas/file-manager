@@ -66,14 +66,14 @@ export class OrganizerController {
   organize = (): Promise<void> =>
     this.operation(async () => {
       const preview = this.session.state.preview
-      if (!preview?.pendingFiles) return
+      if (!preview || (!preview.pendingFiles && !this.session.state.deleteEmptyFolders)) return
       this.session.state.progress = {
         phase: 'moving',
         processed: 0,
         total: preview.pendingFiles,
         currentFile: '',
       }
-      const result = await this.api.organizeFiles(preview.id)
+      const result = await this.api.organizeFiles(preview.id, this.session.state.deleteEmptyFolders)
       if (!result) return
       this.session.state.result = result
       this.session.state.preview = null

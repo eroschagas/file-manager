@@ -34,7 +34,10 @@ export interface OrganizationResult {
 export interface OrganizerApi {
   chooseOrganizerFolder: () => Promise<string | null>
   previewOrganization: (folder: string) => Promise<OrganizationPreview>
-  organizeFiles: (previewId: string) => Promise<OrganizationResult | null>
+  organizeFiles: (
+    previewId: string,
+    deleteEmptyFolders?: boolean,
+  ) => Promise<OrganizationResult | null>
   cancelOrganization: () => Promise<void>
   onOrganizationProgress: (callback: (progress: OrganizationProgress) => void) => () => void
 }

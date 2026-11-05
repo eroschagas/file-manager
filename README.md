@@ -13,7 +13,7 @@ npm run dev
 
 This starts Vite and opens the Electron window. Vue changes appear through hot reload. Press **Ctrl + Shift + I** to open DevTools during development. Opening the Vite URL in a regular browser does not provide access to desktop file operations.
 
-The header offers **Duplicates** and **File organizer** tabs. In **Duplicates**:
+The header offers **Duplicates**, **File organizer**, and **Metadata** tabs. In **Duplicates**:
 
 1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
 2. Choose **Similarity**: Strict, Balanced (default), Flexible, or Broad. Broad allows larger visual and framing differences than Flexible for photos and videos, but can miss angle changes, group unrelated files, and take longer to scan. Review every file before deleting. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.
@@ -34,11 +34,19 @@ Scanning does not modify files. Unreadable, damaged, or unsupported files are re
 
 Photos use capture metadata (EXIF/XMP, prioritizing `DateTimeOriginal`); videos use recording metadata from the container or video track, prioritizing camera-specific recording dates over generic `creation_time`. The year and month recorded in the metadata are preserved without shifting them to the computer's timezone. Missing, invalid, unsupported, or unreadable metadata falls back to the file's modification timestamp (`mtimeMs`), interpreted in the computer's local timezone. Other files also use their modification date. File-system creation time is never used to choose the destination. If neither date is valid, files go into **Unknown Date**.
 
-Only destination folders needed for files are created. Newly created folders that remain empty after a failure or cancellation are removed; pre-existing folders, including emptied source folders, are left untouched. Already organized files stay in place. Repeated names receive suffixes such as `photo (2).jpg`; existing files are never overwritten, including conflicts that appear after the preview.
+Only destination folders needed for files are created. Newly created folders that remain empty after a failure or cancellation are removed. **Delete empty folders after organizing** is unchecked by default. When selected, empty subfolders are deleted from the bottom up only after the file organization phase finishes; the selected root, nonempty folders, symbolic links and junctions are preserved. Canceling organization skips this cleanup. With the option unchecked, pre-existing folders, including emptied source folders, are left untouched. Already organized files stay in place. Repeated names receive suffixes such as `photo (2).jpg`; existing files are never overwritten, including conflicts that appear after the preview.
 
 Source identity, size, creation time, and modification time are checked again before moving. Junctions and symbolic links are skipped. Failures are reported with their file paths and other files continue. Cancellation stops between files and retains completed moves. Moves preserve file timestamps and embedded metadata. Selecting the original root again also corrects files organized into the wrong date folders by an earlier version. A successful move clears the previous duplicate scan because its paths may have changed.
 
 Tabs are disabled during active operations. All operations run locally; no upload or external service is involved.
+
+## Batch metadata editor
+
+The Metadata folder picker remembers selected folders and successfully read folder paths across app restarts. It opens the most recent folder that still exists, trying earlier history entries when a folder is missing or inaccessible. If none remain, the system's default location is used. Canceling the picker leaves the history unchanged.
+
+Open **Metadata**, choose a folder or enter its full path, and click **Read metadata**. Photos and videos in subfolders are included; symbolic links and junctions are skipped. The form exposes capture, creation and internal modification dates, title, description, author, copyright, camera manufacturer and model. A value is prefilled only when it appears in at least 80% of successfully read files, counting missing values toward the total.
+
+Filled fields apply to every file. Blank fields preserve each file's original value. The **Delete** checkbox removes that field and takes precedence over the input. Dates are masked as `YYYY:MM:DD HH:mm:ss`, with an optional timezone offset. Nonempty dates must be complete and valid; clicking Apply highlights invalid fields in red and blocks confirmation. A native dialog lists the changes before writing. ExifTool edits embedded metadata directly in existing files without re-encoding media or creating backup copies, and preserves the modification timestamp. Written values are read back and checked before reporting success. Tag and format support varies; failures and warnings appear with their file paths. Other files continue. Files changed since reading are skipped, and a completed write invalidates the duplicate scan. Read the folder again before another batch.
 
 ## How comparison works
 

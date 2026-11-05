@@ -26,6 +26,14 @@
       >
         File organizer
       </button>
+      <button
+        :class="['app-header__tab', { 'app-header__tab--active': props.activeTab === 'metadata' }]"
+        :aria-current="props.activeTab === 'metadata' ? 'page' : undefined"
+        :disabled="props.busy"
+        @click="emit('navigate', 'metadata')"
+      >
+        Metadata
+      </button>
     </nav>
     <div class="app-header__privacy">
       <PhShieldCheck :size="17" /> Your files stay on your computer
@@ -39,7 +47,7 @@ const props = defineProps({
   activeTab: { type: String, default: 'duplicates' },
   busy: { type: Boolean, default: false },
 })
-const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer'] }>()
+const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer' | 'metadata'] }>()
 </script>
 
 <style lang="scss" scoped>

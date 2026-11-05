@@ -26,10 +26,15 @@
           @browse="props.controller.chooseFolder"
           @preview="props.controller.preview"
         />
+        <label class="organizer-view__cleanup">
+          <input v-model="session.state.deleteEmptyFolders" type="checkbox" />
+          Delete empty folders after organizing
+        </label>
         <OrganizationSummary
           v-if="session.state.preview || session.state.result"
           :preview="session.state.preview"
           :result="session.state.result"
+          :delete-empty-folders="session.state.deleteEmptyFolders"
           @organize="props.controller.organize"
           @preview="props.controller.preview"
         />
@@ -38,7 +43,8 @@
         Month folders use numbered English abbreviations, from 01 - Jan to 12 - Dec. Other files use
         their modification date. Files without either valid date go into
         <strong>Unknown Date</strong>. Existing names are preserved whenever possible; conflicts
-        receive a numbered suffix. Existing empty folders are left untouched.
+        receive a numbered suffix. Empty folders are only deleted after organization when the option
+        is selected.
       </p>
     </div>
   </main>
@@ -105,6 +111,15 @@ const session = props.controller.session
     line-height: 1.8;
     strong {
       font-weight: 600;
+    }
+  }
+  &__cleanup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    input {
+      accent-color: var(--primary);
     }
   }
 }

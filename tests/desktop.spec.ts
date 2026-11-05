@@ -6,6 +6,121 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import ffmpegPath from 'ffmpeg-static'
 import sharp from 'sharp'
+import { ExifTool } from 'exiftool-vendored'
+
+test('desktop: metadata tab reads folder values, preserves blanks and deletes checked fields', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'file-manager-metadata-desktop-'))
+  const tool = new ExifTool({ maxProcs: 1 })
+  const path = join(root, 'photo.jpg')
+  await sharp({ create: { width: 8, height: 8, channels: 3, background: '#abc' } })
+    .jpeg()
+    .toFile(path)
+  await tool.write(
+    path,
+    { Artist: 'Original author', Title: 'Old title' },
+    { writeArgs: ['-overwrite_original'] },
+  )
+  const app = await electron.launch({
+    args: ['.'],
+    env: {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key, value]) => key !== 'ELECTRON_RUN_AS_NODE' && value !== undefined,
+        ),
+      ),
+      ELECTRON_RENDERER_URL: '',
+    },
+  })
+  try {
+    const page = await app.firstWindow()
+    await page.getByRole('button', { name: 'Metadata', exact: true }).click()
+    await page.getByLabel('Media folder', { exact: true }).fill(root)
+    await page.getByRole('button', { name: 'Read metadata', exact: true }).click()
+    await expect(page.getByRole('heading', { name: '1 media file(s)' })).toBeVisible()
+    await app.evaluate(({ dialog }, expected) => {
+      dialog.showOpenDialog = async (...args: unknown[]) => {
+        const options = args[args.length - 1] as { defaultPath?: string }
+        if (options.defaultPath !== expected)
+          throw new Error('Metadata picker did not remember the latest folder')
+        return { canceled: true, filePaths: [] }
+      }
+    }, root)
+    await page.getByRole('button', { name: 'Choose folder', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Read metadata', exact: true })).toBeEnabled()
+    await expect(page.getByRole('status')).toHaveCount(0)
+    await expect(page.getByLabel('Media folder', { exact: true })).toHaveValue(root)
+    const scrollAreas = await page.evaluate(() => {
+      const visible = [...document.querySelectorAll<HTMLElement>('body *')].filter(
+        (element) => element.getClientRects().length,
+      )
+      return {
+        vertical: visible
+          .filter(
+            (element) =>
+              /auto|scroll/.test(getComputedStyle(element).overflowY) &&
+              element.scrollHeight > element.clientHeight,
+          )
+          .map((element) => element.className),
+        horizontal:
+          document.documentElement.scrollWidth > window.innerWidth ||
+          visible.some(
+            (element) =>
+              /auto|scroll/.test(getComputedStyle(element).overflowX) &&
+              element.scrollWidth > element.clientWidth,
+          ),
+        pageOverflow: document.documentElement.scrollHeight > window.innerHeight,
+      }
+    })
+    expect(scrollAreas.vertical).toEqual(['metadata'])
+    expect(scrollAreas.horizontal).toBe(false)
+    expect(scrollAreas.pageOverflow).toBe(false)
+    await expect(page.locator('#metadataArtist')).toHaveValue('Original author')
+    await page.locator('#metadataDateTimeOriginal').fill('20261105')
+    await expect(page.locator('#metadataDateTimeOriginal')).toHaveValue('2026:11:05')
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => {
+        throw new Error('Incomplete dates must not open confirmation')
+      }
+    })
+    await page.getByRole('button', { name: 'Apply to all files' }).click()
+    await expect(page.locator('#metadataDateTimeOriginal')).toHaveAttribute('aria-invalid', 'true')
+    await expect(
+      page.getByText('Enter a complete, valid date: YYYY:MM:DD HH:mm:ss.', { exact: true }),
+    ).toHaveCount(0)
+    await expect(page.locator('#metadataDateTimeOriginal')).toHaveCSS(
+      'border-top-color',
+      'rgb(204, 75, 85)',
+    )
+    await page.locator('#metadataDateTimeOriginal').fill('20261105123045')
+    await expect(page.locator('#metadataDateTimeOriginal')).toHaveValue('2026:11:05 12:30:45')
+    await expect(page.locator('#metadataDateTimeOriginal')).toHaveAttribute('aria-invalid', 'false')
+    await page.locator('#metadataArtist').fill('')
+    await page.getByRole('checkbox', { name: 'Delete Title', exact: true }).check()
+    await expect(page.locator('#metadataTitle')).toBeDisabled()
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false })
+    })
+    await page.getByRole('button', { name: 'Apply to all files' }).click()
+    await expect(page.getByRole('button', { name: 'Apply to all files' })).toBeEnabled()
+    expect((await tool.read(path)).Title).toBe('Old title')
+    await app.evaluate(({ dialog }) => {
+      dialog.showMessageBox = async () => ({ response: 1, checkboxChecked: false })
+    })
+    await page.getByRole('button', { name: 'Apply to all files' }).click()
+    await expect(page.getByRole('status')).toContainText('1 file(s) updated')
+    const tags = await tool.read(path)
+    expect(tags.Artist).toBe('Original author')
+    expect(tags.Title).toBeUndefined()
+    await expect(access(`${path}_original`)).rejects.toThrow()
+    expect(await readdir(root)).toEqual(['photo.jpg'])
+    expect(String(tags.DateTimeOriginal)).toMatch(/2026.*11.*05/)
+    await page.screenshot({ path: '.test-output/metadata-result.png', fullPage: true })
+  } finally {
+    await app.close()
+    await tool.end()
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 const assertFileReleased = async (path: string): Promise<void> => {
   if (process.platform !== 'win32') return
@@ -427,6 +542,9 @@ test('desktop: organizer tabs, recursive preview, confirmation, collisions and r
     page.on('pageerror', (error) => errors.push(error.message))
     await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
     await page.getByRole('button', { name: 'File organizer', exact: true }).click()
+    await expect(
+      page.getByRole('checkbox', { name: 'Delete empty folders after organizing' }),
+    ).not.toBeChecked()
     await expect(page.getByRole('heading', { name: 'A place for every file.' })).toBeVisible()
     await app.evaluate(({ dialog }, folder) => {
       dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] })
@@ -461,6 +579,14 @@ test('desktop: organizer tabs, recursive preview, confirmation, collisions and r
     await page.getByRole('button', { name: 'Preview again', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Your files, organized by date' })).toBeVisible()
     await expect(page.locator('.organization-summary__stats strong').first()).toHaveText('0')
+    await access(join(root, 'nested'))
+    await page.getByRole('checkbox', { name: 'Delete empty folders after organizing' }).check()
+    await page.getByRole('button', { name: 'Organize files', exact: true }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Organization complete', exact: true }),
+    ).toBeVisible()
+    await expect(access(join(root, 'nested'))).rejects.toThrow()
+    await access(root)
     await page.getByRole('button', { name: 'Duplicates', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
     expect(errors).toEqual([])

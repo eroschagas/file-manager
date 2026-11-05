@@ -6,6 +6,7 @@ files:
   - out/**/*
   - package.json
 asarUnpack:
+  - node_modules/exiftool-vendored*/**/*
   - node_modules/sharp/**/*
   - node_modules/@img/**/*
   - node_modules/ffmpeg-static/**/*

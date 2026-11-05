@@ -50,15 +50,16 @@ export class OrganizerIpc {
         return this.organizer.createPreview(folder.trim(), signal, progress)
       }),
     )
-    handle('organizer:run', (id) =>
+    handle('organizer:run', (id, deleteEmptyFolders = false) =>
       operation(async (signal) => {
         if (typeof id !== 'string') throw new Error('Invalid preview.')
+        if (typeof deleteEmptyFolders !== 'boolean') throw new Error('Invalid cleanup option.')
         const preview = this.organizer.getPreview(id)
         const confirmation = await dialog.showMessageBox(getWindow()!, {
           type: 'question',
           title: 'Organize files',
           message: `Move ${preview.pendingFiles} file(s) into date folders?`,
-          detail: `Folder: ${preview.root}\n\nIncludes files in subfolders. Files move into Year/MM - Mon folders (for example, 2026/11 - Nov). Photos and videos use the capture date in their metadata, falling back to the file modification date. Other files use their modification date. Files without either valid date go into Unknown Date. Existing files will never be overwritten.`,
+          detail: `Folder: ${preview.root}\n\nIncludes files in subfolders. Files move into Year/MM - Mon folders (for example, 2026/11 - Nov). Photos and videos use the capture date in their metadata, falling back to the file modification date. Other files use their modification date. Files without either valid date go into Unknown Date. Existing files will never be overwritten.${deleteEmptyFolders ? '\n\nEmpty subfolders will be deleted only after file organization finishes. The selected root folder is preserved. Cleanup is skipped if organization is canceled.' : ''}`,
           buttons: ['Cancel', 'Organize files'],
           defaultId: 0,
           cancelId: 0,
@@ -67,7 +68,7 @@ export class OrganizerIpc {
         if (confirmation.response !== 1 || signal.aborted) return null
         const release = await prepareMove()
         try {
-          const result = await this.organizer.execute(id, signal, progress)
+          const result = await this.organizer.execute(id, signal, progress, deleteEmptyFolders)
           if (result.movedFiles) await onMoved()
           return result
         } finally {

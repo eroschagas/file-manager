@@ -9,6 +9,7 @@ import type {
 } from '../../shared/organizer'
 import { SafeFileMover } from './SafeFileMover'
 import { MediaDateReader } from './MediaDateReader'
+import { isInsideFolder } from '../folders'
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 interface Entry {
@@ -204,6 +205,7 @@ export class FileOrganizer {
     id: string,
     signal: AbortSignal,
     progress: Progress,
+    deleteEmptyFolders = false,
   ): Promise<OrganizationResult> => {
     const preview = this.getPreview(id)
     const entries = this.plan!.entries
@@ -280,7 +282,47 @@ export class FileOrganizer {
       // Only remove empty directories created by this operation.
       for (const directory of created.reverse()) await rmdir(directory).catch(() => undefined)
     }
+    if (deleteEmptyFolders && !result.cancelled && !signal.aborted)
+      await this.deleteEmptySubfolders(preview.root, signal, result)
     result.folders = [...counts].map(([path, count]) => ({ path, count }))
     return result
+  }
+
+  private deleteEmptySubfolders = async (
+    root: string,
+    signal: AbortSignal,
+    result: OrganizationResult,
+  ): Promise<void> => {
+    const validate = async (path: string): Promise<void> => {
+      if ((await realpath(root)) !== root || !isInsideFolder(root, path))
+        throw new Error('The selected folder has changed.')
+      const info = await lstat(path)
+      if (!info.isDirectory() || info.isSymbolicLink() || (await realpath(path)) !== path)
+        throw new Error('Symbolic links and junctions are skipped.')
+    }
+    const visit = async (directory: string): Promise<void> => {
+      if (signal.aborted) return
+      try {
+        if (directory === root) {
+          if ((await realpath(root)) !== root) throw new Error('The selected folder has changed.')
+        } else await validate(directory)
+        const entries = await readdir(directory, { withFileTypes: true })
+        for (const entry of entries) {
+          if (signal.aborted) return
+          if (entry.isDirectory() && !entry.isSymbolicLink())
+            await visit(join(directory, entry.name))
+        }
+        if (directory === root || signal.aborted) return
+        await validate(directory)
+        // rmdir is nonrecursive: a folder containing any file is never removed.
+        await rmdir(directory)
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code
+        if (!['ENOTEMPTY', 'EEXIST', 'ENOENT'].includes(code ?? ''))
+          result.issues.push({ path: directory, message: message(error) })
+      }
+    }
+    await visit(root)
+    if (signal.aborted) result.cancelled = true
   }
 }

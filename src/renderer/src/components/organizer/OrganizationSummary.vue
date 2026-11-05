@@ -53,7 +53,10 @@
       </p>
     </details>
     <div class="organization-summary__actions">
-      <UiButton v-if="props.preview?.pendingFiles" variant="primary" @click="emit('organize')"
+      <UiButton
+        v-if="props.preview && (props.preview.pendingFiles || props.deleteEmptyFolders)"
+        variant="primary"
+        @click="emit('organize')"
         ><PhArrowsDownUp :size="18" /> Organize files</UiButton
       ><UiButton @click="emit('preview')">Preview again</UiButton>
     </div>
@@ -66,6 +69,7 @@ import type { OrganizationPreview, OrganizationResult } from '../../../../shared
 import UiButton from '../ui/UiButton.vue'
 import UiEyebrow from '../ui/UiEyebrow.vue'
 const props = defineProps({
+  deleteEmptyFolders: { type: Boolean, default: false },
   preview: { type: Object as PropType<OrganizationPreview | null>, default: null },
   result: { type: Object as PropType<OrganizationResult | null>, default: null },
 })

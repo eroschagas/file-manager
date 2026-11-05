@@ -42,7 +42,7 @@
       />
       <ImagePreviewDialog :file="controller.state.previewFile" @close="controller.closePreview" />
     </template>
-    <template v-else>
+    <template v-else-if="activeTab === 'organizer'">
       <AppNotice
         v-if="organizer.state.message"
         :message="organizer.state.message"
@@ -51,6 +51,11 @@
       />
       <OrganizerView :controller="organizer" />
     </template>
+    <MetadataView
+      v-show="activeTab === 'metadata'"
+      @busy="metadataBusy = $event"
+      @changed="resetScan"
+    />
   </div>
 </template>
 
@@ -66,21 +71,29 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { FileManagerController } from './controllers/FileManagerController'
 import { OrganizerController } from './controllers/OrganizerController'
 import OrganizerView from './views/OrganizerView.vue'
+import MetadataView from './views/MetadataView.vue'
 const controller = new FileManagerController(window.desktop)
 const organizer = new OrganizerController(window.desktop, () => {
   controller.goHome()
   controller.scan.begin()
   controller.review.reset()
 })
-const activeTab = ref<'duplicates' | 'organizer'>('duplicates')
+const activeTab = ref<'duplicates' | 'organizer' | 'metadata'>('duplicates')
+const metadataBusy = ref(false)
+const resetScan = (): void => {
+  controller.goHome()
+  controller.scan.begin()
+  controller.review.reset()
+}
 const busy = computed(
   () =>
+    metadataBusy.value ||
     organizer.state.busy ||
     controller.state.starting ||
     controller.state.deleting ||
     controller.state.screen === 'scanning',
 )
-const navigate = (tab: 'duplicates' | 'organizer'): void => {
+const navigate = (tab: 'duplicates' | 'organizer' | 'metadata'): void => {
   if (busy.value) return
   controller.closePreview()
   activeTab.value = tab

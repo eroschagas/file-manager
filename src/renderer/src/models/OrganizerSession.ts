@@ -8,6 +8,7 @@ import type {
 export class OrganizerSession {
   readonly state = reactive({
     folder: '',
+    deleteEmptyFolders: false,
     preview: null as OrganizationPreview | null,
     result: null as OrganizationResult | null,
     progress: { phase: 'reading', processed: 0, total: 0, currentFile: '' } as OrganizationProgress,

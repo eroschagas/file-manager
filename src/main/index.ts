@@ -10,6 +10,8 @@ import { similarityLevels, type SimilarityLevel } from '../shared/types'
 import { MediaStreams, trashErrorMessage } from './media-streams'
 import { getFolderPickerDirectory, isInsideFolder, resolveFolders } from './folders'
 import { OrganizerIpc } from './organizer/OrganizerIpc'
+import { MetadataEditor } from './MetadataEditor'
+import { FolderHistory } from './FolderHistory'
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -28,6 +30,8 @@ let folderPickerDirectory: string | undefined
 const mediaFiles = new Map<string, MediaFile>()
 const mediaStreams = new MediaStreams()
 const organizer = new OrganizerIpc()
+const metadata = new MetadataEditor()
+let metadataBusy = false
 
 const emit = (event: WorkerEvent): void => {
   if (window && !window.isDestroyed()) window.webContents.send('scan:event', event)
@@ -87,6 +91,7 @@ const unchangedFile = async (file: MediaFile): Promise<void> => {
 }
 
 const setupIpc = (): void => {
+  const metadataFolders = new FolderHistory(join(app.getPath('userData'), 'metadata-folders.json'))
   // Restrict every operation to this application's own top-level renderer.
   const handle = (channel: string, handler: (...args: unknown[]) => unknown): void => {
     ipcMain.handle(channel, (event, ...args: unknown[]) => {
@@ -103,7 +108,7 @@ const setupIpc = (): void => {
   organizer.register(
     handle,
     () => window!,
-    () => Boolean(worker || scanStarting || trashBusy),
+    () => Boolean(worker || scanStarting || trashBusy || metadataBusy),
     async () => {
       mediaFiles.clear()
       result = null
@@ -113,6 +118,66 @@ const setupIpc = (): void => {
       await mediaStreams.blockAndClose(ids)
       return () => mediaStreams.unblock(ids)
     },
+  )
+  const metadataOperation = async <T>(action: () => Promise<T>): Promise<T> => {
+    if (worker || scanStarting || trashBusy || organizer.busy || metadataBusy)
+      throw new Error('Wait for the current operation to finish.')
+    metadataBusy = true
+    try {
+      return await action()
+    } finally {
+      metadataBusy = false
+    }
+  }
+  handle('metadata:choose', async () => {
+    const selection = await dialog.showOpenDialog(window!, {
+      properties: ['openDirectory'],
+      title: 'Choose a media folder',
+      defaultPath: await metadataFolders.latestExisting(),
+    })
+    const folder = selection.canceled ? null : (selection.filePaths[0] ?? null)
+    if (folder) await metadataFolders.remember(folder)
+    return folder
+  })
+  handle('metadata:preview', (folder) =>
+    metadataOperation(async () => {
+      const preview = await metadata.inspect(folder)
+      await metadataFolders.remember(preview.root)
+      return preview
+    }),
+  )
+  handle('metadata:apply', (id, input) =>
+    metadataOperation(async () => {
+      const preview = metadata.getPreview(id)
+      const changes = metadata.validate(input)
+      const confirmation = await dialog.showMessageBox(window!, {
+        type: 'warning',
+        title: 'Edit metadata',
+        message: `Apply changes to ${preview.count} file(s)?`,
+        detail: `${preview.root}\nIncludes subfolders. Filled fields will be applied to all files.\n${Object.entries(
+          changes,
+        )
+          .map(([key, value]) => `${key}: ${value === null ? 'DELETE' : value}`)
+          .join(
+            '\n',
+          )}\n\nMetadata will be written directly to the existing files. No backup copies will be created. Formats that do not support writing will be reported in the results.`,
+        buttons: ['Cancel', 'Apply metadata'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      })
+      if (confirmation.response !== 1) return null
+      const ids = [...mediaFiles.keys()]
+      await mediaStreams.blockAndClose(ids)
+      try {
+        const response = await metadata.apply(id, changes)
+        mediaFiles.clear()
+        result = null
+        return response
+      } finally {
+        mediaStreams.unblock(ids)
+      }
+    }),
   )
   handle('folder:choose', async () => {
     const selection = await dialog.showOpenDialog(window!, {
@@ -126,7 +191,7 @@ const setupIpc = (): void => {
     return selection.canceled ? [] : selection.filePaths
   })
   handle('scan:start', async (folders: unknown, similarity: unknown = 'balanced') => {
-    if (worker || scanStarting || trashBusy || organizer.busy)
+    if (worker || scanStarting || trashBusy || organizer.busy || metadataBusy)
       throw new Error('Wait for the current operation to finish.')
     scanStarting = true
     try {
@@ -175,7 +240,7 @@ const setupIpc = (): void => {
     shell.showItemInFolder(file.path)
   })
   handle('files:trash', async (ids: unknown): Promise<TrashResult> => {
-    if (worker || scanStarting || trashBusy || organizer.busy || !result)
+    if (worker || scanStarting || trashBusy || organizer.busy || metadataBusy || !result)
       throw new Error('Wait for the current operation to finish.')
     if (
       !Array.isArray(ids) ||
@@ -344,6 +409,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 app.on('before-quit', () => {
+  metadata.close()
   worker?.postMessage('cancel')
   organizer.cancel()
 })

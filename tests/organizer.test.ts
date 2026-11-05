@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
 import { test } from 'node:test'
 import { lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -17,6 +18,58 @@ const fixture = async (run: (root: string) => Promise<void>): Promise<void> => {
     await rm(root, { recursive: true, force: true })
   }
 }
+
+test('optional cleanup removes empty subfolders only after all moves and preserves root and nonempty folders', async () =>
+  fixture(async (root) => {
+    const source = join(root, 'old', 'nested')
+    await mkdir(source, { recursive: true })
+    await mkdir(join(root, 'already-empty', 'child'), { recursive: true })
+    await writeFile(join(source, 'first.txt'), 'first')
+    await writeFile(join(source, 'second.txt'), 'second')
+    const organizer = new FileOrganizer(() => date)
+    const preview = await organizer.createPreview(root, signal(), noProgress)
+    let moves = 0
+    const result = await organizer.execute(
+      preview.id,
+      signal(),
+      () => {
+        moves += 1
+        assert.equal(existsSync(join(root, 'already-empty', 'child')), true)
+        assert.equal(existsSync(source), true)
+      },
+      true,
+    )
+    assert.equal(moves, 2)
+    assert.equal(result.movedFiles, 2)
+    assert.deepEqual(result.issues, [])
+    assert.deepEqual(await readdir(root), ['2024'])
+    assert.deepEqual(await readdir(join(root, '2024', '11 - Nov')), ['first.txt', 'second.txt'])
+  }))
+
+test('cleanup stays disabled by default and can run after an organization with no pending files', async () =>
+  fixture(async (root) => {
+    await mkdir(join(root, 'empty', 'child'), { recursive: true })
+    const organizer = new FileOrganizer(() => date)
+    let preview = await organizer.createPreview(root, signal(), noProgress)
+    await organizer.execute(preview.id, signal(), noProgress)
+    assert.deepEqual(await readdir(root), ['empty'])
+    preview = await organizer.createPreview(root, signal(), noProgress)
+    await organizer.execute(preview.id, signal(), noProgress, true)
+    assert.deepEqual(await readdir(root), [])
+  }))
+
+test('canceling organization skips optional cleanup', async () =>
+  fixture(async (root) => {
+    await mkdir(join(root, 'empty'))
+    await writeFile(join(root, 'first.txt'), 'first')
+    await writeFile(join(root, 'second.txt'), 'second')
+    const organizer = new FileOrganizer(() => date)
+    const preview = await organizer.createPreview(root, signal(), noProgress)
+    const abort = new AbortController()
+    const result = await organizer.execute(preview.id, abort.signal, () => abort.abort(), true)
+    assert.equal(result.cancelled, true)
+    assert.equal((await lstat(join(root, 'empty'))).isDirectory(), true)
+  }))
 
 test('organizer uses resolved dates across years and handles invalid dates', async () =>
   fixture(async (root) => {

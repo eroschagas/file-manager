@@ -3,9 +3,13 @@ import type { DesktopApi, WorkerEvent } from '../shared/types'
 import type { OrganizationProgress } from '../shared/organizer'
 
 const api: DesktopApi = {
+  chooseMetadataFolder: () => ipcRenderer.invoke('metadata:choose'),
+  previewMetadata: (folder) => ipcRenderer.invoke('metadata:preview', folder),
+  applyMetadata: (id, changes) => ipcRenderer.invoke('metadata:apply', id, changes),
   chooseOrganizerFolder: () => ipcRenderer.invoke('organizer:choose'),
   previewOrganization: (folder) => ipcRenderer.invoke('organizer:preview', folder),
-  organizeFiles: (id) => ipcRenderer.invoke('organizer:run', id),
+  organizeFiles: (id, deleteEmptyFolders = false) =>
+    ipcRenderer.invoke('organizer:run', id, deleteEmptyFolders),
   cancelOrganization: () => ipcRenderer.invoke('organizer:cancel'),
   onOrganizationProgress: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: OrganizationProgress): void =>
