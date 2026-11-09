@@ -1,6 +1,16 @@
 # File Manager
 
-A local desktop app built with Vue 3, TypeScript, and Electron to find duplicate or visually similar photos and videos and organize files into date folders.
+[Download for Windows](https://drive.google.com/file/d/1AB-vJehpUotaq99W1nniT6Z_yo31MWeF/view?usp=sharing)
+
+File Manager is a local desktop application for finding duplicate or visually similar photos and videos, organizing files into date folders, and editing media metadata in batches. Built with Vue 3, TypeScript, and Electron, it processes files on your computer without uploading them to an external service.
+
+The app provides three tools:
+
+- **Duplicates:** Scan one or more folders and their subfolders for identical or visually similar photos and videos. Choose from four similarity levels, compare thumbnails, resolutions, sizes, and video durations, enlarge images, play supported videos, and reveal files in Windows Explorer. Review individual or group selections before moving unwanted files to the Recycle Bin. Scanning does not modify your files, and unreadable or unsupported media are reported.
+- **File organizer:** Preview how files will be organized before moving them into year and month folders such as `2026/11 - Nov`. Photos and videos use capture or recording dates from their metadata, falling back to file modification dates; other files use their modification dates. Files without a valid date go into `Unknown Date`. Name conflicts receive numbered suffixes instead of overwriting existing files. An optional checkbox, unchecked by default, removes empty subfolders only after organization finishes. Operations can be canceled, and completed moves are retained.
+- **Metadata:** Read photos and videos recursively and edit capture, creation, and internal modification dates, title, description, author, copyright, camera manufacturer, and camera model. Fields are automatically filled when the same value appears in at least 80% of successfully read files. Leave a field blank to preserve each file's value, or select its Delete checkbox to remove that metadata. Date masks and validation block incomplete or invalid dates. Changes are confirmed before being written directly to the existing files, without re-encoding media or creating backup copies, and the written values are checked afterward. The folder picker remembers your history across app restarts and falls back to earlier folders when recent ones are unavailable.
+
+All three tools report processing issues. Symbolic links and junctions are skipped. Media format and codec support varies, and visual similarity results should be reviewed before deleting files.
 
 ## Development
 
