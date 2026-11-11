@@ -1,8 +1,8 @@
-# File Manager
+# Lumora
 
 <a href="https://drive.google.com/file/d/1AB-vJehpUotaq99W1nniT6Z_yo31MWeF/view?usp=sharing" target="_blank" rel="noopener noreferrer">Download for Windows</a>
 
-File Manager is a local desktop application for finding duplicate or visually similar photos and videos, organizing files into date folders, and editing media metadata in batches. Built with Vue 3, TypeScript, and Electron, it processes files on your computer without uploading them to an external service.
+Lumora is a local desktop application for finding duplicate or visually similar photos and videos, organizing files into date folders, and editing media metadata in batches. Built with Vue 3, TypeScript, and Electron, it processes files on your computer without uploading them to an external service.
 
 The app provides three tools:
 
@@ -23,7 +23,7 @@ npm run dev
 
 This starts Vite and opens the Electron window. Vue changes appear through hot reload. Press **Ctrl + Shift + I** to open DevTools during development. Opening the Vite URL in a regular browser does not provide access to desktop file operations.
 
-The header offers **Duplicates**, **File organizer**, and **Metadata** tabs. In **Duplicates**:
+The app opens on **Home**, with project information and shortcuts to its three tools. The header offers **Home**, **Duplicates**, **File organizer**, and **Metadata** tabs. In **Duplicates**:
 
 1. Enter a folder path or use **Browse folders** to select multiple folders. Use **Add folder** to add paths manually and the remove button to remove an entry.
 2. Choose **Similarity**: Strict, Balanced (default), Flexible, or Broad. Broad allows larger visual and framing differences than Flexible for photos and videos, but can miss angle changes, group unrelated files, and take longer to scan. Review every file before deleting. Click **Scan files** to compare files across all selected folders and their subfolders. Symbolic links and junctions are skipped. Repeated or overlapping folders are scanned once. Empty fields are ignored; invalid paths prevent the scan from starting.

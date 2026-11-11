@@ -205,6 +205,13 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       if (request.url().startsWith('media://original/')) originalRequests.push(request.url())
     })
     page.on('pageerror', (error) => errors.push(error.message))
+    await expect(page).toHaveTitle('Lumora')
+    await expect(
+      page.getByRole('heading', { name: /Less clutter\.\s*More clarity\./ }),
+    ).toBeVisible()
+    await expect(page.locator('.home__logo')).toHaveJSProperty('naturalWidth', 512)
+    await page.screenshot({ path: '.test-output/home.png', fullPage: true })
+    await page.getByRole('button', { name: /Find the keepers/ }).click()
     await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
     await expect(page.getByLabel('Similarity', { exact: true })).toHaveValue('balanced')
     await page.getByLabel('Similarity', { exact: true }).selectOption('flexible')
@@ -540,7 +547,10 @@ test('desktop: organizer tabs, recursive preview, confirmation, collisions and r
     const page = await app.firstWindow()
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    await expect(page.getByRole('heading', { name: 'Where should we start?' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Home', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     await page.getByRole('button', { name: 'File organizer', exact: true }).click()
     await expect(
       page.getByRole('checkbox', { name: 'Delete empty folders after organizing' }),

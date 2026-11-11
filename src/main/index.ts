@@ -43,7 +43,8 @@ const createWindow = (): void => {
     height: 900,
     minWidth: 900,
     minHeight: 650,
-    title: 'File Manager',
+    title: 'Lumora',
+    icon: join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'resources/icon.png'),
     backgroundColor: '#f7f8fa',
     autoHideMenuBar: true,
     webPreferences: {
@@ -395,6 +396,7 @@ const serveMedia = (): void => {
 }
 
 void app.whenReady().then(async () => {
+  app.setAppUserModelId('com.local.filemanager')
   const cacheRoot = join(app.getPath('temp'), 'file-manager')
   await mkdir(cacheRoot, { recursive: true })
   sessionDirectory = await mkdtemp(join(cacheRoot, 'session-'))

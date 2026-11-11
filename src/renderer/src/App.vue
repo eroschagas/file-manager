@@ -1,7 +1,8 @@
 <template>
   <div class="app-shell">
     <AppHeader :active-tab="activeTab" :busy="busy" @home="goHome" @navigate="navigate" />
-    <template v-if="activeTab === 'duplicates'">
+    <HomeView v-if="activeTab === 'home'" @navigate="navigate" />
+    <template v-else-if="activeTab === 'duplicates'">
       <AppNotice
         v-if="controller.state.message"
         :message="controller.state.message"
@@ -72,13 +73,15 @@ import { FileManagerController } from './controllers/FileManagerController'
 import { OrganizerController } from './controllers/OrganizerController'
 import OrganizerView from './views/OrganizerView.vue'
 import MetadataView from './views/MetadataView.vue'
+import HomeView from './views/HomeView.vue'
+import type { AppTab } from '../../shared/navigation'
 const controller = new FileManagerController(window.desktop)
 const organizer = new OrganizerController(window.desktop, () => {
   controller.goHome()
   controller.scan.begin()
   controller.review.reset()
 })
-const activeTab = ref<'duplicates' | 'organizer' | 'metadata'>('duplicates')
+const activeTab = ref<AppTab>('home')
 const metadataBusy = ref(false)
 const resetScan = (): void => {
   controller.goHome()
@@ -93,15 +96,14 @@ const busy = computed(
     controller.state.deleting ||
     controller.state.screen === 'scanning',
 )
-const navigate = (tab: 'duplicates' | 'organizer' | 'metadata'): void => {
+const navigate = (tab: AppTab): void => {
   if (busy.value) return
   controller.closePreview()
   activeTab.value = tab
 }
 const goHome = (): void => {
   if (!busy.value) {
-    navigate('duplicates')
-    controller.goHome()
+    navigate('home')
   }
 }
 controller.initialize()

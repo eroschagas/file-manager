@@ -1,90 +1,94 @@
 <template>
   <main class="metadata">
-    <div class="metadata__heading">
-      <PhNotePencil :size="28" />
-      <h1>Batch metadata editor</h1>
-    </div>
-    <p>Choose a folder to edit photo and video metadata, including subfolders.</p>
-    <form class="metadata__folder" @submit.prevent="inspect">
-      <label for="metadataFolder">Media folder</label>
-      <div class="metadata__controls">
-        <input
-          id="metadataFolder"
-          v-model="folder"
-          :disabled="busy"
-          placeholder="Full folder path"
-          @input="preview = null"
-        />
-        <UiButton :disabled="busy" @click="browse"
-          ><PhFolderOpen :size="18" />Choose folder</UiButton
-        >
-        <UiButton type="submit" variant="primary" :disabled="busy || !folder.trim()"
-          >Read metadata</UiButton
-        >
-      </div>
-    </form>
-    <p v-if="busy" role="status">
-      {{ saving ? 'Saving metadata…' : 'Reading files in the folder…' }}
-    </p>
-    <p v-if="message" role="status">{{ message }}</p>
-    <section v-if="preview" class="metadata__editor">
-      <h2>{{ preview.count }} media file(s)</h2>
-      <p>
-        Values found in at least 80% of files are filled in automatically. Fields with varying
-        values are left blank.
-      </p>
-      <p>
-        A blank field preserves each file's original value. “Delete” removes the metadata. Filled
-        fields will be applied to all files.
-      </p>
-      <p>
-        Dates: YYYY:MM:DD HH:mm:ss (no timezone conversion). File system dates are not changed.
-        Metadata is saved directly to the existing files, without creating backup copies.
-      </p>
-      <form novalidate @submit.prevent="apply">
-        <div v-for="field in metadataFields" :key="field.key" class="metadata__field">
-          <label :for="`metadata${field.key}`"
-            >{{ field.label }}<small>{{ field.key }}</small></label
+    <div class="metadata__content">
+      <UiPageIntro eyebrow="METADATA" title="Batch metadata editor">
+        Choose a folder to edit photo and video metadata, including subfolders.
+      </UiPageIntro>
+      <form class="metadata__folder" @submit.prevent="inspect">
+        <label for="metadataFolder">Media folder</label>
+        <div class="metadata__controls">
+          <input
+            id="metadataFolder"
+            v-model="folder"
+            :disabled="busy"
+            placeholder="Full folder path"
+            @input="preview = null"
+          />
+          <UiButton :disabled="busy" @click="browse"
+            ><PhFolderOpen :size="18" />Choose folder</UiButton
           >
-          <div class="metadata__input">
-            <input
-              :id="`metadata${field.key}`"
-              :value="values[field.key]"
-              :class="[
-                'metadata__value',
-                { 'metadata__value--invalid': !!errors[field.key] && !deleted[field.key] },
-              ]"
-              :aria-invalid="!!errors[field.key] && !deleted[field.key]"
-              :disabled="busy || deleted[field.key]"
-              :placeholder="'date' in field ? 'YYYY:MM:DD HH:mm:ss' : 'Keep original'"
-              :maxlength="'date' in field ? 25 : 4096"
-              @input="updateValue(field.key, $event)"
-            />
-          </div>
-          <label class="metadata__delete"
-            ><input v-model="deleted[field.key]" type="checkbox" :disabled="busy" />Delete<span
-              class="metadata__sr"
-            >
-              {{ field.label }}</span
-            ></label
+          <UiButton type="submit" variant="primary" :disabled="busy || !folder.trim()"
+            >Read metadata</UiButton
           >
         </div>
-        <UiButton type="submit" variant="primary" :disabled="busy || !preview.count || !hasChanges"
-          >Apply to all files</UiButton
-        >
       </form>
-    </section>
-    <details v-if="issues.length" class="metadata__issues">
-      <summary>{{ issues.length }} warning(s) / skipped file(s)</summary>
-      <p v-for="(issue, index) in issues" :key="index">{{ issue.path }} — {{ issue.message }}</p>
-    </details>
+      <p v-if="busy" role="status">
+        {{ saving ? 'Saving metadata…' : 'Reading files in the folder…' }}
+      </p>
+      <p v-if="message" role="status">{{ message }}</p>
+      <section v-if="preview" class="metadata__editor">
+        <h2>{{ preview.count }} media file(s)</h2>
+        <p>
+          Values found in at least 80% of files are filled in automatically. Fields with varying
+          values are left blank.
+        </p>
+        <p>
+          A blank field preserves each file's original value. “Delete” removes the metadata. Filled
+          fields will be applied to all files.
+        </p>
+        <p>
+          Dates: YYYY:MM:DD HH:mm:ss (no timezone conversion). File system dates are not changed.
+          Metadata is saved directly to the existing files, without creating backup copies.
+        </p>
+        <form novalidate @submit.prevent="apply">
+          <div v-for="field in metadataFields" :key="field.key" class="metadata__field">
+            <label :for="`metadata${field.key}`"
+              >{{ field.label }}<small>{{ field.key }}</small></label
+            >
+            <div class="metadata__input">
+              <input
+                :id="`metadata${field.key}`"
+                :value="values[field.key]"
+                :class="[
+                  'metadata__value',
+                  { 'metadata__value--invalid': !!errors[field.key] && !deleted[field.key] },
+                ]"
+                :aria-invalid="!!errors[field.key] && !deleted[field.key]"
+                :disabled="busy || deleted[field.key]"
+                :placeholder="'date' in field ? 'YYYY:MM:DD HH:mm:ss' : 'Keep original'"
+                :maxlength="'date' in field ? 25 : 4096"
+                @input="updateValue(field.key, $event)"
+              />
+            </div>
+            <label class="metadata__delete"
+              ><input v-model="deleted[field.key]" type="checkbox" :disabled="busy" />Delete<span
+                class="metadata__sr"
+              >
+                {{ field.label }}</span
+              ></label
+            >
+          </div>
+          <UiButton
+            type="submit"
+            variant="primary"
+            :disabled="busy || !preview.count || !hasChanges"
+            >Apply to all files</UiButton
+          >
+        </form>
+      </section>
+      <details v-if="issues.length" class="metadata__issues">
+        <summary>{{ issues.length }} warning(s) / skipped file(s)</summary>
+        <p v-for="(issue, index) in issues" :key="index">{{ issue.path }} — {{ issue.message }}</p>
+      </details>
+    </div>
   </main>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { PhFolderOpen, PhNotePencil } from '@phosphor-icons/vue'
+import { PhFolderOpen } from '@phosphor-icons/vue'
 import UiButton from '../components/ui/UiButton.vue'
+import UiPageIntro from '../components/ui/UiPageIntro.vue'
 import {
   metadataFields,
   maskMetadataDate,
@@ -183,15 +187,11 @@ const apply = async (): Promise<void> => {
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 36px 42px;
+  padding: 46px var(--page-gutter);
   flex: 1;
-  &__heading {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    h1 {
-      font-size: 26px;
-    }
+  &__content {
+    max-width: var(--content-max-width);
+    margin: 0 auto;
   }
   p {
     color: var(--muted);
@@ -258,8 +258,9 @@ const apply = async (): Promise<void> => {
     overflow: hidden;
     clip-path: inset(50%);
   }
-  @media (max-width: 1000px) {
-    padding: 24px;
+  @media (max-width: 1050px) {
+    padding-top: 32px;
+    padding-bottom: 24px;
     &__field {
       grid-template-columns: 180px minmax(0, 1fr) 80px;
     }

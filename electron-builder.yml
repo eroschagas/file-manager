@@ -1,5 +1,8 @@
 appId: com.local.filemanager
-productName: File Manager
+productName: Lumora
+extraResources:
+  - from: resources/icon.png
+    to: resources/icon.png
 directories:
   output: release
 files:
@@ -12,7 +15,10 @@ asarUnpack:
   - node_modules/ffmpeg-static/**/*
   - node_modules/ffprobe-static/**/*
 win:
+  icon: resources/icon.ico
   target: nsis
 nsis:
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
   oneClick: false
   allowToChangeInstallationDirectory: true

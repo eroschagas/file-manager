@@ -1,2 +1,19 @@
 @use './tokens';
 @use './reset';
+
+:root {
+  --content-max-width: 1200px;
+  --page-gutter: 42px;
+}
+
+@media (max-width: 1050px) {
+  :root {
+    --page-gutter: 25px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --page-gutter: 20px;
+  }
+}

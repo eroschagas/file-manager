@@ -1,8 +1,8 @@
 {
-  "name": "file-manager",
+  "name": "lumora",
   "version": "0.1.0",
   "private": true,
-  "description": "Local organizer for similar photos and videos",
+  "description": "Lumora — organize your media, find duplicates, and edit metadata locally",
   "author": "",
   "main": "out/main/index.js",
   "scripts": {

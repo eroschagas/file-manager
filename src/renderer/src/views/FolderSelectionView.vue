@@ -1,12 +1,10 @@
 <template>
   <main class="setup">
     <div class="setup__content">
-      <div class="setup__eyebrow"><span></span> MORE SPACE. FEWER COPIES.</div>
-      <h1>Find what is taking<br />up space twice<span>.</span></h1>
-      <p class="setup__description">
-        Compare similar photos and videos, even at different quality levels.<br />You decide what
-        stays and what goes to the Recycle Bin.
-      </p>
+      <UiPageIntro eyebrow="DUPLICATES" title="Find what is taking up space twice.">
+        Compare similar photos and videos, even at different quality levels. You decide what stays
+        and what goes to the Recycle Bin.
+      </UiPageIntro>
 
       <FolderSelectionForm
         :folders="folders"
@@ -42,6 +40,7 @@
 <script setup lang="ts">
 import { PhLockSimple } from '@phosphor-icons/vue'
 import FolderSelectionForm from '../components/setup/FolderSelectionForm.vue'
+import UiPageIntro from '../components/ui/UiPageIntro.vue'
 import { type PropType } from 'vue'
 import type { FolderSelection } from '../models/FolderSelection'
 const props = defineProps({
@@ -59,43 +58,9 @@ const emit = defineEmits<{ start: []; browse: [index: number] }>()
   overflow-y: auto;
   text-align: center;
   &__content {
-    max-width: 840px;
+    width: min(var(--content-max-width), calc(100% - 2 * var(--page-gutter)));
     margin: 0 auto;
-    padding: 62px 30px 25px;
-  }
-  &__eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 11px;
-    border-radius: 20px;
-    background: #eeebfc;
-    color: var(--primary);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    span {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--primary);
-    }
-  }
-  h1 {
-    margin-top: 22px;
-    font-size: clamp(32px, 3.5vw, 45px);
-    line-height: 1.17;
-    font-weight: 650;
-    letter-spacing: -1.8px;
-    span {
-      color: var(--primary);
-    }
-  }
-  &__description {
-    margin-top: 17px;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.8;
+    padding: 46px 0 25px;
   }
   &__steps {
     display: grid;
@@ -129,6 +94,11 @@ const emit = defineEmits<{ start: []; browse: [index: number] }>()
     gap: 7px;
     color: #9699a4;
     font-size: 11px;
+  }
+}
+@media (max-width: 1050px) {
+  .setup__content {
+    padding-top: 32px;
   }
 }
 </style>

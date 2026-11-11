@@ -1,12 +1,20 @@
 <template>
   <header class="app-header">
     <a class="app-header__brand" href="#" @click.prevent="emit('home')"
-      ><span class="app-header__logo"><PhStack :size="23" weight="bold" /></span>File Manager<span
+      ><img class="app-header__logo" :src="logo" alt="" width="36" height="36" />Lumora<span
         class="app-header__version"
         >LOCAL</span
       ></a
     >
     <nav class="app-header__tabs" aria-label="Tools">
+      <button
+        :class="['app-header__tab', { 'app-header__tab--active': props.activeTab === 'home' }]"
+        :aria-current="props.activeTab === 'home' ? 'page' : undefined"
+        :disabled="props.busy"
+        @click="emit('navigate', 'home')"
+      >
+        Home
+      </button>
       <button
         :class="[
           'app-header__tab',
@@ -42,12 +50,14 @@
 </template>
 
 <script setup lang="ts">
-import { PhStack, PhShieldCheck } from '@phosphor-icons/vue'
+import { PhShieldCheck } from '@phosphor-icons/vue'
+import logo from '../../../../../resources/lumora.svg'
+import type { AppTab } from '../../../../shared/navigation'
 const props = defineProps({
-  activeTab: { type: String, default: 'duplicates' },
+  activeTab: { type: String, default: 'home' },
   busy: { type: Boolean, default: false },
 })
-const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer' | 'metadata'] }>()
+const emit = defineEmits<{ home: []; navigate: [tab: AppTab] }>()
 </script>
 
 <style lang="scss" scoped>
@@ -108,9 +118,6 @@ const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer' 
     place-items: center;
     width: 36px;
     height: 36px;
-    color: white;
-    background: var(--primary);
-    border-radius: 10px;
   }
   &__version {
     margin-left: 5px;
@@ -139,6 +146,24 @@ const emit = defineEmits<{ home: []; navigate: [tab: 'duplicates' | 'organizer' 
     &__privacy {
       font-size: 0;
       gap: 0;
+    }
+  }
+}
+@media (max-width: 767px) {
+  .app-header {
+    height: auto;
+    padding: 16px 20px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+    &__tabs {
+      order: 3;
+      width: 100%;
+      height: 44px;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    &__brand {
+      font-size: 17px;
     }
   }
 }

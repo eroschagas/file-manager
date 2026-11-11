@@ -122,7 +122,7 @@ const emit = defineEmits<{ start: []; browse: [index: number] }>()
   }
   padding: 27px;
   margin: 33px auto 0;
-  max-width: 680px;
+  width: 100%;
   background: white;
   border: 1px solid var(--border);
   border-radius: 15px;

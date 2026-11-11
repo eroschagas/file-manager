@@ -68,9 +68,9 @@ const session = props.controller.session
   min-height: 0;
   overflow-y: auto;
   width: 100%;
-  padding: 46px 30px;
+  padding: 46px var(--page-gutter);
   &__content {
-    max-width: 840px;
+    max-width: var(--content-max-width);
     width: 100%;
     margin: 0 auto;
     display: flex;
@@ -125,7 +125,8 @@ const session = props.controller.session
 }
 @media (max-width: 1050px) {
   .organizer-view {
-    padding: 32px 25px;
+    padding-top: 32px;
+    padding-bottom: 32px;
   }
 }
 </style>

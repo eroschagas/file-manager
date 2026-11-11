@@ -64,9 +64,10 @@ const emit = defineEmits<{
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  width: 100%;
+  width: min(var(--content-max-width), calc(100% - 2 * var(--page-gutter)));
+  margin: 0 auto;
   overflow: hidden;
-  padding: 16px 24px;
+  padding: 16px 0;
 }
 .comparison {
   flex: 1;
@@ -79,10 +80,6 @@ const emit = defineEmits<{
   align-items: stretch;
 }
 @media (max-width: 1050px) {
-  .results {
-    padding-right: 25px;
-    padding-left: 25px;
-  }
   .comparison {
     grid-template-columns: 210px minmax(0, 1fr);
     gap: 18px;
