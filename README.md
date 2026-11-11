@@ -1,6 +1,6 @@
 # Lumora
 
-<a href="https://drive.google.com/file/d/1AB-vJehpUotaq99W1nniT6Z_yo31MWeF/view?usp=sharing" target="_blank" rel="noopener noreferrer">Download for Windows</a>
+<a href="https://drive.google.com/file/d/14OTTyofIaB3FnNg4w_ODrJ_jxAm96i9i/view?usp=sharing" target="_blank" rel="noopener noreferrer">Download for Windows</a>
 
 Lumora is a local desktop application for finding duplicate or visually similar photos and videos, organizing files into date folders, and editing media metadata in batches. Built with Vue 3, TypeScript, and Electron, it processes files on your computer without uploading them to an external service.
 
