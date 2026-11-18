@@ -1,8 +1,8 @@
 {
-  "name": "lumora",
+  "name": "lunera",
   "version": "0.1.0",
   "private": true,
-  "description": "Lumora — organize your media, find duplicates, and edit metadata locally",
+  "description": "Lunera — organize your media, find duplicates, and edit metadata locally",
   "author": "",
   "main": "out/main/index.js",
   "scripts": {

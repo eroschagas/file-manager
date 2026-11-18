@@ -43,7 +43,7 @@ const createWindow = (): void => {
     height: 900,
     minWidth: 900,
     minHeight: 650,
-    title: 'Lumora',
+    title: 'Lunera',
     icon: join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'resources/icon.png'),
     backgroundColor: '#f7f8fa',
     autoHideMenuBar: true,

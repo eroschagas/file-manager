@@ -205,7 +205,7 @@ test('desktop: recursive scan, previews, selection safeguards and trash confirma
       if (request.url().startsWith('media://original/')) originalRequests.push(request.url())
     })
     page.on('pageerror', (error) => errors.push(error.message))
-    await expect(page).toHaveTitle('Lumora')
+    await expect(page).toHaveTitle('Lunera')
     await expect(
       page.getByRole('heading', { name: /Less clutter\.\s*More clarity\./ }),
     ).toBeVisible()

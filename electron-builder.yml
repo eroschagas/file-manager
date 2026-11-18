@@ -1,5 +1,5 @@
 appId: com.local.filemanager
-productName: Lumora
+productName: Lunera
 extraResources:
   - from: resources/icon.png
     to: resources/icon.png

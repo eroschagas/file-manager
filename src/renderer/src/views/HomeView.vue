@@ -7,7 +7,7 @@
             <span class="home__eyebrow">A CLEARER SPACE FOR YOUR MEMORIES</span>
             <h1 id="homeTitle">Less clutter.<br />More clarity.</h1>
             <p class="home__description">
-              Meet Lumora. Find similar photos and videos, bring order to your folders, and give
+              Meet Lunera. Find similar photos and videos, bring order to your folders, and give
               your media the right details. All in one place, right on your computer.
             </p>
             <div class="home__privacy">
@@ -15,8 +15,8 @@
             </div>
           </div>
           <div class="home__identity">
-            <img class="home__logo" :src="logo" alt="Lumora logo" width="144" height="144" />
-            <strong class="home__name">Lumora</strong>
+            <img class="home__logo" :src="logo" alt="Lunera logo" width="144" height="144" />
+            <strong class="home__name">Lunera</strong>
             <span>Your media, beautifully in order.</span>
           </div>
         </section>
@@ -43,7 +43,7 @@
       <footer class="home__footer">
         <div class="home__footer-content">
           <p>
-            <strong>Lumora</strong> <span>Version {{ version }}</span>
+            <strong>Lunera</strong> <span>Version {{ version }}</span>
           </p>
           <p>Built with Vue, TypeScript &amp; Electron. Designed for local media collections.</p>
         </div>
@@ -63,7 +63,7 @@ import {
 import type { Component } from 'vue'
 import type { ToolTab } from '../../../shared/navigation'
 import { version } from '../../../../package.json'
-import logo from '../../../../resources/lumora.svg'
+import logo from '../../../../resources/lunera.svg'
 
 interface HomeTool {
   tab: ToolTab

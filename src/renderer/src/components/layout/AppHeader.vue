@@ -1,7 +1,7 @@
 <template>
   <header class="app-header">
     <a class="app-header__brand" href="#" @click.prevent="emit('home')"
-      ><img class="app-header__logo" :src="logo" alt="" width="36" height="36" />Lumora<span
+      ><img class="app-header__logo" :src="logo" alt="" width="36" height="36" />Lunera<span
         class="app-header__version"
         >LOCAL</span
       ></a
@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 import { PhShieldCheck } from '@phosphor-icons/vue'
-import logo from '../../../../../resources/lumora.svg'
+import logo from '../../../../../resources/lunera.svg'
 import type { AppTab } from '../../../../shared/navigation'
 const props = defineProps({
   activeTab: { type: String, default: 'home' },
